@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import random
 
 from ase.neighborlist import NeighborList
 
@@ -86,18 +87,18 @@ class orr_cat(dynamic_cat):
         '''
         For each active atom, print the number of nearest neighbors that are also active
         '''
-        atom_graph = self.defected_graph
+        defected_graph = self.defected_graph
         for i in self.active_atoms:
-            if atom_graph.is_node(i):
-                if atom_graph.get_coordination_number(i) <= self.active_CN:
+            if defected_graph.is_node(i):
+                if defected_graph.get_coordination_number(i) <= self.active_CN:
                     
-                    gcn = atom_graph.get_generalized_coordination_number(i, 12)
+                    gcn = defected_graph.get_generalized_coordination_number(i, 12)
                     
                     Nnn = 0
-                    for j in atom_graph.get_neighbors(i):
+                    for j in defected_graph.get_neighbors(i):
                         if j in self.active_atoms:
-                            if atom_graph.is_node(j):
-                                if atom_graph.get_coordination_number(j) <= self.active_CN:
+                            if defected_graph.is_node(j):
+                                if defected_graph.get_coordination_number(j) <= self.active_CN:
                                     Nnn += 1
                     
                     print [gcn, Nnn]
@@ -122,9 +123,8 @@ class orr_cat(dynamic_cat):
                     curr_list[i] = ORR_rate(BE_OH, BE_OOH)
                     
         curr_list = np.transpose( np.array(curr_list).reshape([2,self.atoms_per_layer]) )  
+        return curr_list
         
-        #return np.sum(curr_list, axis = 1)
-        return curr_list[:,0]
                     
     def eval_current_density(self, normalize = True, site_currents = None):
         
@@ -132,7 +132,7 @@ class orr_cat(dynamic_cat):
         :param normalize: current density [mA/cm^2]
         
         Not normalized: current [mA]
-        '''       
+        '''
         
         if site_currents is None:
             site_currents = self.get_site_data()
@@ -144,21 +144,20 @@ class orr_cat(dynamic_cat):
         return J
         
     
-    def eval_surface_energy(self, atom_graph = None, normalize = True):
+    def eval_surface_energy(self, defected_graph = None, normalize = True):
         
         '''
         Normalized: surface energy [J/m^2]
         Not normalized: formation energy [eV]
         '''        
         
-        if atom_graph is None:
-            atom_graph = self.defected_graph
+        if defected_graph is None:
+            defected_graph = self.defected_graph
         
         E_form = 0
         for i in self.active_atoms:
-            if atom_graph.is_node(i):
-                E_form += self.metal.E_coh * ( 1 - np.sqrt( atom_graph.get_coordination_number(i) / 12.0 ) )
-                #E_form += self.metal.E_coh * ( 1 - atom_graph.get_coordination_number(i) / 12.0 )
+            if defected_graph.is_node(i):
+                E_form += self.metal.E_coh * ( 1 - np.sqrt( defected_graph.get_coordination_number(i) / 12.0 ) )
                 
         if normalize:
             E_form = E_form * 1.60218e-19                                             # convert energy from eV to Joules
@@ -182,37 +181,29 @@ class orr_cat(dynamic_cat):
             for neighb in self.template_graph.get_neighbors(ind):
                 if self.defected_graph.is_node(neighb):
                     self.defected_graph.add_edge([ind, neighb])
-
+                    
+                    
+    def rand_move_CE(self, move_these = None):
+        ''' Randomly change an adjacent atom-occupancy pair '''
+        
+        # Identify an adjacent atom-occupancy pair
+        if move_these is None:
+        
+            # Enumerate atom-occupancies adjacent pairs
+            pair_list = []
+            for i in self.variable_atoms:
+                if self.defected_graph.is_node(i):
+                    vacant_neighbs = []
+                    for j in self.template_graph.get_neighbors(i):
+                        if not self.defected_graph.is_node(j):
+                            pair_list.append([i,j])
             
-    def eval_x(self, y):
-    
-        y = np.array(y)
-        self.build_graph(x = y)
-        return self.get_OFs()
+            if not pair_list == []:
+                move_these = random.choice(pair_list)    
         
-    
-    def get_OF(self):
+        # Flip these occupancies
+        if not move_these is None:
+            self.flip_atom(move_these[0])
+            self.flip_atom(move_these[1])
         
-        '''
-        :param weights: Weights for the objective functions
-        :returns: A single objective function that is a linear superposition of the other objectives
-        '''
-
-        return self.weights[0] * self.eval_surface_energy() + self.weights[1] * self.eval_current_density()
-        
-    
-    def get_OFs(self):
-        
-        '''
-        Evaluate the objective functions
-        :returns: 2-ple of surface energy and current density
-        '''
-        
-        return self.eval_surface_energy(), self.eval_current_density()
-        
-        
-    def show(self, fname = 'structure_1', fmat = 'png', transmute_top = True, chop_top = False):
-        '''
-        Use super class method with top layer transmuted to display
-        '''
-        super(orr_cat, self).show(fname = fname, fmat = fmat, transmute_top = transmute_top)
+        return move_these

@@ -38,7 +38,6 @@ class dynamic_cat(object):
         self.surface_area = None                        # surface area of the slab in square angstroms
         self.defected_graph = None                      # graph which helps compute things, implemented in subclasses
         self.atom_last_moved = None                     # Index of the variable atom last changed, used to revert moves in simulated annealing
-        self.weights = [0., -1.]                        # For multiobjective optimization
         
         
         '''
@@ -391,7 +390,7 @@ class dynamic_cat(object):
         return var_ind % self.dim1, var_ind / self.dim1
         
         
-    def show(self, fname = 'structure_1', fmat = 'png', transmute_top = False, chop_top = False):
+    def show(self, fname = 'structure_1', fmat = 'png', transmute_top = False):
                 
         '''
         Print image of surface
@@ -407,7 +406,7 @@ class dynamic_cat(object):
         
         self.atoms_defected.set_pbc(True)
         
-        if transmute_top or chop_top:
+        if transmute_top:
             coords = self.atoms_defected.get_positions()
             a_nums = self.atoms_defected.get_atomic_numbers()
             chem_symbs = self.atoms_defected.get_chemical_symbols()
@@ -420,13 +419,9 @@ class dynamic_cat(object):
                     a_nums[atom_ind] = 27
                     chem_symbs[atom_ind] = 'Co'
                     if_delete[atom_ind] = True
-            
-            if transmute_top:
-                self.atoms_defected.set_atomic_numbers(a_nums)
-                self.atoms_defected.set_chemical_symbols(chem_symbs)
-            
-            if chop_top:
-                del self.atoms_defected[if_delete]
+
+            self.atoms_defected.set_atomic_numbers(a_nums)
+            self.atoms_defected.set_chemical_symbols(chem_symbs)
                 
         
         if fmat == 'png':
