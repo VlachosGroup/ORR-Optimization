@@ -1,3 +1,7 @@
+'''
+Template catalyst structure with defects
+'''
+
 import random
 import numpy as np
 import copy

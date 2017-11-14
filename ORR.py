@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri May 26 14:39:12 2017
+'''
+Computes the rate of the oxygen reduction reaction
+'''
 
-@author: mpnun
-"""
 
 import numpy as np
 
@@ -12,12 +10,12 @@ def ORR_rate(delEads_OH, delEads_OOH):
     '''
     Compute ORR rate from OH and OOH binding energies
     Follows the method and data in S.1 of F. Calle-Vallejo et al., Science 350(6257), 185 (2015).
-    Also see J. K. Nørskov et al., The Journal of Physical Chemistry B 108(46), 17886 (2004).
+    Also see J. K. Norskov et al., The Journal of Physical Chemistry B 108(46), 17886 (2004).
     for method on how to convert binding energies to activity
     
     :param delEads_OH: low coverage DFT binding energy of OH
     :param delEads_OOH: low coverage DFT binding energy of OOH
-    :returns: Current
+    :returns: Current [miliAmperes (mA) per atom]
     '''        
     
     kB = 8.617e-5                      # eV / K
@@ -29,9 +27,9 @@ def ORR_rate(delEads_OH, delEads_OOH):
     
     # *OH, *OOH
     E_g = [-7.53, -13.26]
-    ZPE = [0.332, 0.428]                # find actual values, eV
-    TS = [0, 0]                  # eV, at 298 K
-    E_solv = [-0.575, -0.480]  # solvation energy, eV
+    ZPE = [0.332, 0.428]                # zero-point energy correction, eV
+    TS = [0, 0]                         # entropy contribution to Gibbs energyat 298 K, eV
+    E_solv = [-0.575, -0.480]           # solvation energy, eV
     
     # Species free energies at T = 298K
     G_OH = E_g[0] + delEads_OH + ZPE[0] - TS[0] + E_solv[0]

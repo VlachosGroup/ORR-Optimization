@@ -12,26 +12,31 @@ from sim_anneal import *
 import matplotlib.pyplot as plt
 import matplotlib as mat
 
-data_fldr = '/home/vlachos/mpnunez/ORR_data/optimization'
-MOO_weight = 1.0
+data_fldr = '/home/vlachos/mpnunez/ORR_data/optimization/mixed'
+MOO_weight = 0.75
 
 '''
 Build catalyst structure
 '''
 
-cat = orr_cat()
+cat = orr_cat(dim1 = 15, dim2 = 15)
 cat.randomize(build_structure = True)
 
-'''
-Multiobjective optimization (stage 1)
-'''
+# Compute normalization factors
+E_form_norm = cat.metal.E_coh / 12.0
+I_norm = 0.5 * cat.i_max
 
 # Show structure
 cat.show(fname = os.path.join(data_fldr, 'pre_optimized'), fmat = 'png', transmute_top = True)
 cat.show(fname = os.path.join(data_fldr, 'pre_optimized'), fmat = 'xsd', transmute_top = True)
 
+'''
+Multiobjective optimization (stage 1)
+'''
+
 # Optimize
-traj_hist_a = optimize(cat, weight = MOO_weight, ensemble = 'GCE', n_cycles = 5, c = 0.7, n_record = 100, verbose = True)
+traj_hist_a = optimize(cat, weight = MOO_weight, ensemble = 'GCE', n_cycles = 200, T_0 = 1.2, 
+    j_norm = I_norm, se_norm = E_form_norm, n_record = 100, verbose = True)
 np.save(os.path.join(data_fldr, 'trajectory_a.npy'), traj_hist_a)
 
 mat.rcParams['mathtext.default'] = 'regular'
@@ -42,7 +47,7 @@ mat.rcParams['lines.markersize'] = 12
 
 # Plot current density profile
 fig = plt.figure()
-plt.plot(traj_hist_2[:,0], traj_hist_2[:,1], '-')
+plt.plot(traj_hist_a[:,0], traj_hist_a[:,1], '-')
 plt.xticks(size=20)
 plt.yticks(size=20)
 plt.xlabel('Metropolis steps',size=20)
@@ -53,7 +58,7 @@ plt.close()
 
 # Plot surface energy profile
 fig = plt.figure()
-plt.plot(traj_hist_2[:,0], traj_hist_2[:,2], '-')
+plt.plot(traj_hist_a[:,0], traj_hist_a[:,2], '-')
 plt.xticks(size=20)
 plt.yticks(size=20)
 plt.xlabel('Metropolis steps',size=20)
@@ -72,12 +77,12 @@ Surface energy minimization to meta-stable structure (stage 2)
 '''
 
 # Optimize
-traj_hist_b = optimize(cat, weight = 0., ensemble = 'CE', n_cycles = 5, c = 0, n_record = 20, verbose = True)
+traj_hist_b = optimize(cat, weight = 0., ensemble = 'CE', n_cycles = 50, T_0 = 0, n_record = 100, verbose = True)
 np.save(os.path.join(data_fldr, 'trajectory_b.npy'), traj_hist_b)
 
 # Plot current density profile
 fig = plt.figure()
-plt.plot(traj_hist_2[:,0], traj_hist_2[:,1], '-')
+plt.plot(traj_hist_b[:,0], traj_hist_b[:,1], '-')
 plt.xticks(size=20)
 plt.yticks(size=20)
 plt.xlabel('Metropolis steps',size=20)
@@ -88,7 +93,7 @@ plt.close()
 
 # Plot surface energy profile
 fig = plt.figure()
-plt.plot(traj_hist_2[:,0], traj_hist_2[:,2], '-')
+plt.plot(traj_hist_b[:,0], traj_hist_b[:,2], '-')
 plt.xticks(size=20)
 plt.yticks(size=20)
 plt.xlabel('Metropolis steps',size=20)
@@ -99,5 +104,5 @@ plt.close()
 
 # Show structure
 cat.occs_to_atoms()
-cat.show(fname = os.path.join(data_fldr, 'optimized'), fmat = 'png', transmute_top = True)
-cat.show(fname = os.path.join(data_fldr, 'optimized'), fmat = 'xsd', transmute_top = True)
+cat.show(fname = os.path.join(data_fldr, 'meta_stable'), fmat = 'png', transmute_top = True)
+cat.show(fname = os.path.join(data_fldr, 'meta_stable'), fmat = 'xsd', transmute_top = True)

@@ -1,12 +1,16 @@
-from ORR.metal import metal
-from ORR.ORR import ORR_rate
+'''
+Uses uncertainty in the GCN fits to plot a volcano with uncertainty
+'''
+
+from metal import metal
+from ORR import ORR_rate
 import numpy as np
 from scipy.stats import norm
 
 import matplotlib.pyplot as plt
 import matplotlib as mat
 
-metal_name = 'Pt'
+metal_name = 'Au'
 x = metal(metal_name)
 
 
@@ -23,8 +27,6 @@ BE_OH_err_mesh, BE_OOH_err_mesh = np.meshgrid(BE_OH_err_vec,
 rel_prob = np.zeros(BE_OH_err_mesh.shape)
 for i in range(n_mesh):
     for j in range(n_mesh):
-        #print str(BE_OH_err_mesh[i,j]) + '\t' + str(BE_OOH_err_mesh[i,j])
-        #pcas = np.matmul(np.array([BE_OH_err_mesh[i,j], BE_OOH_err_mesh[i,j]]), x.pca_mat )
         pcas = np.matmul(np.array([BE_OH_err_mesh[i,j], BE_OOH_err_mesh[i,j]]), x.pca_inv )
         rel_prob[i,j] = norm.pdf(pcas[0] / x.sigma_pca_1 ) * norm.pdf(pcas[1] / x.sigma_pca_2 )
 
@@ -76,25 +78,37 @@ for i in xrange(n_GCNs):
     det_vol[i] = rate
     
     n_MC_samples = 1000
-    data = np.zeros(n_MC_samples)
+    data_uncorr = np.zeros(n_MC_samples)
+    data_corr = np.zeros(n_MC_samples)
     
     for j in xrange(n_MC_samples):
 
+        # Unocorrelated data
+        BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = False)
+        rate = ORR_rate(BEs[0], BEs[1])
+        data_uncorr[j] = rate
+    
+        # Correlated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = True)
         rate = ORR_rate(BEs[0], BEs[1])
-        data[j] = rate
+        data_corr[j] = rate
     
-    UQ_corr_vol[i] = np.mean(data)
+    data_uncorr = np.sort(data_uncorr)
+    data_corr = np.sort(data_corr)
+    
+    UQ_uncorr_vol[i] = np.exp( np.mean( np.log(data_uncorr)))
+    UQ_corr_vol[i] = np.exp( np.mean( np.log(data_corr)))
     
 fig = plt.figure()
 plt.plot(GCN_vec, det_vol, label = 'deterministic')
-plt.plot(GCN_vec, UQ_corr_vol, label = 'uncertain')
+plt.plot(GCN_vec, UQ_corr_vol, label = 'correlated UQ')
+plt.plot(GCN_vec, UQ_uncorr_vol, label = 'uncorrelated UQ')
 plt.xticks(size=20)
 plt.yticks(size=20)
 plt.xlabel('GCN',size=20)
 plt.ylabel('log(rate)',size=20)
 plt.yscale('log')
-plt.legend(loc=1, prop={'size':20}, frameon=False)
+plt.legend(loc=4, prop={'size':20}, frameon=False)
 plt.tight_layout()
 plt.savefig(metal_name + '_volcano.png', format='png', dpi=600)
 plt.close()

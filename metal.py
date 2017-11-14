@@ -1,13 +1,9 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri May 26 13:26:51 2017
-
-@author: mpnun
+Models thermodynamic properties of the metal such as GCN-dependent binding energies
 """
 
 import numpy as np
 import os
-from matplotlib.mlab import PCA
 
 class metal:
 
@@ -21,7 +17,7 @@ class metal:
         
         if met_name == 'Pt':
             
-            self.E_coh = 4.5222 				 
+            self.E_coh = 4.5222
             self.lc_PBE = 3.968434601
             self.GCN_opt = 8.3
             self.E_per_bulk_atom = -6.0978575

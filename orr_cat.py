@@ -1,3 +1,7 @@
+'''
+Computes catalyst properties specific to ORR catalysts
+'''
+
 import numpy as np
 import copy
 import random
@@ -32,6 +36,18 @@ class orr_cat(dynamic_cat):
             
         self.active_atoms = range(2 * self.atoms_per_layer, 4 * self.atoms_per_layer)
         self.metal = metal(met_name)
+        
+        # Compute normalization factor from volcano plot
+        GCN_vec = np.linspace(3,10)
+        volcano = np.zeros(GCN_vec.shape)
+        for ind in xrange(len(GCN_vec)):
+            BEs = self.metal.get_BEs(GCN_vec[ind])
+            BE_OH = BEs[0]
+            BE_OOH = BEs[1]
+            volcano[ind] = ORR_rate(BE_OH, BE_OOH)
+        
+        self.i_max = np.max(volcano)
+        
         
         '''
         Build template graph
@@ -126,44 +142,57 @@ class orr_cat(dynamic_cat):
         return curr_list
         
                     
-    def eval_current_density(self, normalize = True, site_currents = None):
+    def eval_current_density(self, normalize = True):
         
         '''
         :param normalize: current density [mA/cm^2]
-        
-        Not normalized: current [mA]
+        :returns: Total current (mA) or Current density [mA/cm^2]
         '''
         
-        if site_currents is None:
-            site_currents = self.get_site_data()
-        J = np.sum(site_currents)
+        site_currents = self.get_site_data()
+        I = np.sum(site_currents)
         
         if normalize:
-            J = J / ( self.surface_area * 1.0e-16)          # normalize by surface area (in square centimeters)
-  
-        return J
+            return self.normalize_current_density(I)
+        else:
+            return I
+    
+        
+    def normalize_current_density(self,I):
+        '''
+        :param I: total current in mA
+        :returns: Total current (mA) or Current density [mA/cm^2]
+        '''
+        square_cm_per_square_angstrom = 1.0e-16         # conversion factor
+        return I / ( self.surface_area * square_cm_per_square_angstrom)
         
     
-    def eval_surface_energy(self, defected_graph = None, normalize = True):
+    def eval_surface_energy(self, normalize = True):
         
         '''
         Normalized: surface energy [J/m^2]
-        Not normalized: formation energy [eV]
-        '''        
-        
-        if defected_graph is None:
-            defected_graph = self.defected_graph
+        Not normalized: formation energy [eV] or surface energy (J/m^2)
+        '''
         
         E_form = 0
         for i in self.active_atoms:
-            if defected_graph.is_node(i):
-                E_form += self.metal.E_coh * ( 1 - np.sqrt( defected_graph.get_coordination_number(i) / 12.0 ) )
+            if self.defected_graph.is_node(i):
+                E_form += self.metal.E_coh * ( 1 - np.sqrt( self.defected_graph.get_coordination_number(i) / 12.0 ) )
                 
         if normalize:
-            E_form = E_form * 1.60218e-19                                             # convert energy from eV to Joules
-            E_form = E_form / ( self.surface_area * 1.0e-20)                # normalize by surface area (in square meters)
-                
-        return E_form       
+            return self.normalize_surface_energy(E_form)
+        else:
+            return E_form      
+    
+
+    def normalize_surface_energy(self,E_form):
+        '''
+        :param E_form: formation energy of the slab (eV)
+        :returns: Current density [mA/cm^2]
+        '''
+        ev_to_Joule = 1.60218e-19                       # conversion factor
+        square_m_per_square_angstrom = 1.0e-20          # conversion factor
+        return E_form * ev_to_Joule / ( self.surface_area * square_m_per_square_angstrom )
         
     
     def flip_atom(self, ind):
