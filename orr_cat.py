@@ -108,7 +108,7 @@ class orr_cat(dynamic_cat):
             if defected_graph.is_node(i):
                 if defected_graph.get_coordination_number(i) <= self.active_CN:
                     
-                    gcn = defected_graph.get_generalized_coordination_number(i, 12)
+                    gcn = defected_graph.get_generalized_coordination_number(i)
                     
                     Nnn = 0
                     for j in defected_graph.get_neighbors(i):
@@ -120,7 +120,7 @@ class orr_cat(dynamic_cat):
                     print [gcn, Nnn]
         
     
-    def get_site_data(self):
+    def get_site_currents(self):
         '''
         Evaluate the contribution to the current from each site
         
@@ -132,7 +132,7 @@ class orr_cat(dynamic_cat):
             site_ind = self.active_atoms[i]
             if self.defected_graph.is_node(site_ind):
                 if self.defected_graph.get_coordination_number(site_ind) <= self.active_CN:
-                    gcn = self.defected_graph.get_generalized_coordination_number(site_ind, 12)
+                    gcn = self.defected_graph.get_generalized_coordination_number(site_ind)
                     BEs = self.metal.get_BEs(gcn)
                     BE_OH = BEs[0]
                     BE_OOH = BEs[1]
@@ -149,7 +149,7 @@ class orr_cat(dynamic_cat):
         :returns: Total current (mA) or Current density [mA/cm^2]
         '''
         
-        site_currents = self.get_site_data()
+        site_currents = self.get_site_currents()
         I = np.sum(site_currents)
         
         if normalize:
@@ -213,7 +213,10 @@ class orr_cat(dynamic_cat):
                     
                     
     def rand_move_CE(self, move_these = None):
-        ''' Randomly change an adjacent atom-occupancy pair '''
+        '''
+        Randomly change an adjacent atom-occupancy pair
+        :param move_these: Can specify the atoms to be flipped
+        '''
         
         # Identify an adjacent atom-occupancy pair
         if move_these is None:

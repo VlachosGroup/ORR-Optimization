@@ -1,15 +1,9 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri May 26 15:36:16 2017
-
-@author: mpnun
+Dictionary based graphs
+Adapted from http://www.python-course.eu/graphs_python.php
 """
 
 class Graph(object):
-
-    '''
-    Adapted from http://www.python-course.eu/graphs_python.php
-    '''
 
     def __init__(self, graph_dict=None):
         """ initializes a graph object 
@@ -115,10 +109,13 @@ class Graph(object):
         return len(self.__graph_dict[vertex])
 
         
-    def get_generalized_coordination_number(self, vertex, CN_max):
+    def get_generalized_coordination_number(self, vertex, CN_max=12):
         
         """
-        Compute the GCN of a vertex        
+        Compute the GCN of a vertex    
+        :param vertex: Index of the node/vertex
+        :param CN_max: Maximum coordination number. It is 12 for an fcc metal
+        :returns: The generalized coordination number of vertex
         """ 
         
         GCN = 0

@@ -22,11 +22,12 @@ def ORR_rate(delEads_OH, delEads_OOH):
     T = 298.15                         # K
     U_0 = 1.23                         # eV, theoretical maximum cell voltage for ORR
     U = 0.9                             # V, cathode potential
-    i_c = 1.6123434625e-12                    # miliAmperes (mA) per atom, divide by surface area to get current density          
+    i_c = 1.6123434625e-12                    # miliAmperes (mA) per atom, divide by surface area to get current density
+        # This is empirically fitted to match the current density of Pt(111) from experiments
     n = 1                               # number of electrons tranfered in each step    
     
     # *OH, *OOH
-    E_g = [-7.53, -13.26]
+    E_g = [-7.53, -13.26]               # energies of OH(g) and OOH(g)
     ZPE = [0.332, 0.428]                # zero-point energy correction, eV
     TS = [0, 0]                         # entropy contribution to Gibbs energyat 298 K, eV
     E_solv = [-0.575, -0.480]           # solvation energy, eV

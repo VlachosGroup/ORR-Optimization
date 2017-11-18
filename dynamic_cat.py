@@ -6,6 +6,7 @@ import random
 import numpy as np
 import copy
 
+# Atomic simulation envirnoment (ASE) dependency
 from ase.io import read
 from ase.io import write
 from ase.build import fcc111, fcc100
@@ -14,6 +15,11 @@ class dynamic_cat(object):
     
     '''
     Template for defected catalyst facets to be optimized. Handles (111) and (100) facets.
+    
+    Uses 3 data structures to represent the catalyst structure
+    self.atoms_defected (atoms): ASE Atoms object
+    self.variable_occs (occs): Occupancies of the atoms that can be present or missing
+    self.defected_graph (graph): Graph object implemented in graph_theory.py
     '''
     
     def __init__(self, met_name = 'Pt', facet = '111', dim1 = 12, dim2 = 12, fixed_layers = 3,
@@ -188,72 +194,6 @@ class dynamic_cat(object):
             self.variable_occs[ind] = 1
         else:
             raise NameError('Invalid occupancy.')
-        
-    # Virtual methods    
-    def graph_to_occs(self):
-        '''
-        Virtual method
-        Convert graph representation of defected structure to occupancy vector
-        '''
-        raise NameError('Must be defined in subclass')
-    def occs_to_graph(self):
-        '''
-        Virtual method
-        Convert occupancy vector to graph representation of defected structure
-        '''
-        raise NameError('Must be defined in subclass')
-    def get_site_data(self):
-        '''
-        Virtual method
-        Get data for each site for training the neural network
-        '''
-    def eval_OF(self):
-        '''
-        Virtual method
-        Evaluate objective function for single-objective optimization
-        '''
-        raise NameError('Must be defined in subclass')
-    def eval_OFs(self):
-        '''
-        Virtual method
-        Evaluate objective functions for multi-objective optimization
-        '''
-        raise NameError('Must be defined in subclass')
-        
-        
-    def geo_crossover(self, x1, x2, pt1 = 1, pt2 = 1):
-        '''
-        Geometry-based crossover. Partions the catalyst surface into regions in a checkerboard style and performs crossover.
-        
-        :param x1: Mom
-        :param x2: Dad
-        :param pt1: By default, use 1-point crossover in first dimension
-        :param pt2: By default, use 1-point crossover in second dimension
-        
-        :returns: Two offspring
-        '''
-        
-        x_bounds = [random.random() for i in xrange(pt1)]
-        y_bounds = [random.random() for i in xrange(pt2)]
-        
-        frac_coords = self.atoms_template.get_scaled_positions()
-        
-        for i in xrange(len(x1)):
-            
-            # Find whether it is an even or odd cell
-            score = 0
-            for bound in x_bounds:
-                if frac_coords[self.variable_atoms[i],0] > bound:
-                    score += 1
-            for bound in y_bounds:
-                if frac_coords[self.variable_atoms[i],1] > bound:
-                    score += 1
-            
-            # Swap if it is in an even cell
-            if score % 2 == 0:
-                x1[i], x2[i] = x2[i], x1[i]
-        
-        return x1, x2
     
 
     def rand_move(self):
@@ -261,137 +201,10 @@ class dynamic_cat(object):
         self.atom_last_moved = random.choice(self.variable_atoms)
         self.flip_atom(self.atom_last_moved)
     
+    
     def revert_last(self):
         ''' Revert last move for simulated annealing '''
         self.flip_atom(self.atom_last_moved)
-        
-    
-    def generate_all_translations(self, local = False):
-        '''
-        Generate a symmetery matrix which has all possible translations of the
-        sites within the unit cell
-        '''
-        
-        all_translations = []
-        n_var = len(self.variable_atoms)
-        for var_ind in range(n_var):
-            d1, d2 = self.var_ind_to_sym_inds(var_ind)
-            all_translations.append( self.translate( d1, d2) )
-
-        return np.array(all_translations)
-
-        
-    def translate(self, shift1, shift2):
-        '''
-        Permute occupancies according to symmetry
-        
-        :param shift1: Number of indices to translate to the left along first axis
-        
-        :param shift2: Number of indices to translate downward along second axis
-        '''
-        
-        n_var = len(self.variable_atoms)
-        new_occs = np.zeros(n_var)
-        for var_ind in range(n_var):
-            d1, d2 = self.var_ind_to_sym_inds(var_ind)
-            map_from_ind = self.sym_inds_to_var_ind( d1 + shift1 , d2 + shift2 )
-            new_occs[var_ind] = self.variable_occs[ map_from_ind ]
-                
-        return new_occs
-        
-    
-    def generate_all_translations_and_rotations(self):
-        
-        all_translations = []
-        n_var = len(self.variable_atoms)
-        
-        for var_ind in range(n_var):
-            d1, d2 = self.var_ind_to_sym_inds(var_ind)
-            translated = self.translate( d1, d2)
-            
-            for angle in [0,1,2]:
-                all_translations.append( self.rotate( angle, old_occs = translated ) )
-
-        return np.array(all_translations)
-    
-    
-    def rotate(self, i, old_occs = None):
-        '''
-        Permute occupancies according to symmetry
-        
-        :param i: Rotate the catalyst by 120i degrees (clockwise or counterclockwise?)
-        '''
-        
-        if old_occs is None:
-            old_occs = self.variable_occs
-        
-        i = i%3
-        
-        if i == 0:
-            return old_occs
-        else:
-        
-            n_var = len(self.variable_atoms)
-            new_occs = np.zeros(n_var)
-            for var_ind in range(n_var):
-            
-                d1, d2 = self.var_ind_to_sym_inds(var_ind)
-                
-                if i == 1:
-                    d1_new = -d1 - d2
-                    d2_new = d1
-                elif i == 2:
-                    d1_new = d2
-                    d2_new = -d1 - d2
-                else:
-                    raise NameError('Error in rotations.')
-                
-                map_from_ind = self.sym_inds_to_var_ind( d1_new , d2_new )
-                new_occs[var_ind] = old_occs[ map_from_ind ]
-                    
-            return new_occs
-
-  
-    def get_local_inds(self, shift1=0, shift2=0):
-        '''
-        Permute occupancies according to symmetry
-        
-        :param shift1: Number of indices to translate along first axis
-        
-        :param shift2: Number of indices to translate along second axis
-        '''
-        
-        n_var = len(self.variable_atoms)
-        new_occs = []
-        for var_ind in range(n_var):
-            d1, d2 = self.var_ind_to_sym_inds(var_ind)
-            if np.abs(d1) <= 3 and np.abs(d2) <= 3:
-                map_from_ind = self.sym_inds_to_var_ind( d1 + shift1 , d2 + shift2 )
-                new_occs.append(map_from_ind)
-                
-        return new_occs
-        
-    
-    def sym_inds_to_var_ind(self, sym_ind1, sym_ind2):
-        '''
-        Convert 2-indices to 1
-        :param sym_ind1: Index of the atom along the first dimension
-        :param sym_ind2: Index of the atom along the second dimension
-        :returns: Index of the atom
-        '''
-        sym_ind1 = sym_ind1 % self.dim1
-        sym_ind2 = sym_ind2 % self.dim2
-        return sym_ind2 * self.dim1 + sym_ind1
-    
-    
-    def var_ind_to_sym_inds(self,var_ind):
-        '''
-        Convert 2-indices to 1
-        :param: Index of the atom
-        :returns sym_ind1: Index of the atom along the first dimension
-        :returns sym_ind2: Index of the atom along the second dimension
-        '''
-        return var_ind % self.dim1, var_ind / self.dim1
         
         
     def show(self, fname = 'structure_1', fmat = 'png', transmute_top = False):
