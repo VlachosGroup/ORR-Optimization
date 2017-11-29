@@ -5,7 +5,7 @@ Computes the rate of the oxygen reduction reaction
 
 import numpy as np
 
-def ORR_rate(delEads_OH, delEads_OOH,explicit=False):
+def ORR_rate(delEads_OH, delEads_OOH,explicit=False,explicit_corr=False):
     
     '''
     Compute ORR rate from OH and OOH binding energies
@@ -17,11 +17,6 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False):
     :param delEads_OOH: low coverage DFT binding energy of OOH
     :returns: Current [miliAmperes (mA) per atom]
     '''        
-    if explicit == True:
-        OHerror_slope = -0.80633535887037389; OHerror_int = -1.6501590877756314
-        OOHerror_slope = -1.2794044205507167; OOHerror_int = -4.4373201153172923
-        delEads_OH = delEads_OH*OHerror_slope + OHerror_int
-        delEads_OOH = delEads_OOH*OOHerror_slope+OOHerror_int
     kB = 8.617e-5                      # eV / K
     T = 298.15                         # K
     U_0 = 1.23                         # eV, theoretical maximum cell voltage for ORR
@@ -35,10 +30,27 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False):
     ZPE = [0.332, 0.428]                # zero-point energy correction, eV
     TS = [0, 0]                         # entropy contribution to Gibbs energy at 298 K, eV
     E_solv = [-0.575, -0.480]           # solvation energy, eV
+
+    #Adding implicit solvation energy
+    delEads_OH += E_solv[0]
+    delEads_OOH += E_solv[1]
     
+    #Using correlation to get energies using explicit solvation
+    if explicit == True and explicit_corr==True:
+        OHerror_slope = -0.806335; OHerror_int = -1.90872
+        OOHerror_slope = -1.279404; OOHerror_int = -1.546990
+        delEads_OH = delEads_OH*OHerror_slope + OHerror_int
+        delEads_OOH = delEads_OOH*OOHerror_slope+OOHerror_int
+    
+    #applying average explicit solvation
+    if explicit == True and explicit_corr==False:
+        EOHerror = 0.44333; EOOHerror = 0.56763
+        delEads_OH += EOHerror
+        delEads_OOH += EOOHerror
+        
     # Species free energies at T = 298K
-    G_OH = E_g[0] + delEads_OH + ZPE[0] - TS[0] + E_solv[0]
-    G_OOH = E_g[1] + delEads_OOH + ZPE[1] - TS[1] + E_solv[1]
+    G_OH = E_g[0] + delEads_OH + ZPE[0] - TS[0]
+    G_OOH = E_g[1] + delEads_OOH + ZPE[1] - TS[1]
     
     # Gas species Gibbs energies
     # H2(g), H2O(l), O2(g), OH(g), OOH(g)
