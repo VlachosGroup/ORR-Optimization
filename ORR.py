@@ -5,7 +5,7 @@ Computes the rate of the oxygen reduction reaction
 
 import numpy as np
 
-def ORR_rate(delEads_OH, delEads_OOH):
+def ORR_rate(delEads_OH, delEads_OOH,explicit=False):
     
     '''
     Compute ORR rate from OH and OOH binding energies
@@ -17,7 +17,11 @@ def ORR_rate(delEads_OH, delEads_OOH):
     :param delEads_OOH: low coverage DFT binding energy of OOH
     :returns: Current [miliAmperes (mA) per atom]
     '''        
-    
+    if explicit == True:
+        OHerror_slope = -0.80633535887037389; OHerror_int = -1.6501590877756314
+        OOHerror_slope = -1.2794044205507167; OOHerror_int = -4.4373201153172923
+        delEads_OH = delEads_OH*OHerror_slope + OHerror_int
+        delEads_OOH = delEads_OOH*OOHerror_slope+OOHerror_int
     kB = 8.617e-5                      # eV / K
     T = 298.15                         # K
     U_0 = 1.23                         # eV, theoretical maximum cell voltage for ORR

@@ -10,7 +10,7 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 import matplotlib as mat
 
-metal_name = 'Au'
+metal_name = 'Pt'
 x = metal(metal_name)
 
 
@@ -74,7 +74,7 @@ for i in xrange(n_GCNs):
     
     # Data for deterministic volcano
     BEs = x.get_BEs(GCN_vec[i], uncertainty = False)
-    rate = ORR_rate(BEs[0], BEs[1])
+    rate = ORR_rate(BEs[0], BEs[1],explicit=True)
     det_vol[i] = rate
     
     n_MC_samples = 1000
@@ -85,12 +85,12 @@ for i in xrange(n_GCNs):
 
         # Unocorrelated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = False)
-        rate = ORR_rate(BEs[0], BEs[1])
+        rate = ORR_rate(BEs[0], BEs[1],explicit=True)
         data_uncorr[j] = rate
     
         # Correlated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = True)
-        rate = ORR_rate(BEs[0], BEs[1])
+        rate = ORR_rate(BEs[0], BEs[1],explicit=True)
         data_corr[j] = rate
     
     data_uncorr = np.sort(data_uncorr)
