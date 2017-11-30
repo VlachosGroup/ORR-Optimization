@@ -5,7 +5,7 @@ Computes the rate of the oxygen reduction reaction
 
 import numpy as np
 
-def ORR_rate(delEads_OH, delEads_OOH,explicit=False,explicit_corr=False):
+def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0):
     
     '''
     Compute ORR rate from OH and OOH binding energies
@@ -15,6 +15,9 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,explicit_corr=False):
     
     :param delEads_OH: low coverage DFT binding energy of OH
     :param delEads_OOH: low coverage DFT binding energy of OOH
+    :optional param explicit: converts from implicit to explicit solvation, default=False
+    :optional param oxygen: scales energies for presence of oxygen (1/9 ML atomic O), default=False
+    :optional param coverage (ML): scales energies for lateral interactions default=0
     :returns: Current [miliAmperes (mA) per atom]
     '''        
     kB = 8.617e-5                      # eV / K
@@ -31,23 +34,29 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,explicit_corr=False):
     TS = [0, 0]                         # entropy contribution to Gibbs energy at 298 K, eV
     E_solv = [-0.575, -0.480]           # solvation energy, eV
 
-    #Adding implicit solvation energy
+    #add implicit solvation energy
     delEads_OH += E_solv[0]
     delEads_OOH += E_solv[1]
     
-    #Using correlation to get energies using explicit solvation
-    if explicit == True and explicit_corr==True:
-        OHerror_slope = -0.806335; OHerror_int = -1.90872
-        OOHerror_slope = -1.279404; OOHerror_int = -1.546990
-        delEads_OH = delEads_OH*OHerror_slope + OHerror_int
-        delEads_OOH = delEads_OOH*OOHerror_slope+OOHerror_int
+    #exchange implicit for explicit solvation effects
+    if explicit == True:
+        EOHimpl2expl = 0.268498; EOOHimpl2expl = 0.392798
+        delEads_OH += EOHimpl2expl
+        delEads_OOH += EOOHimpl2expl
+    #add effects of oxygen covered surface
+    if oxygen == True:
+        EOHwO = 0.26074; EOOHwO = 0.27617
+        delEads_OH += EOHwO
+        delEads_OOH += EOOHwO  
+        #add lateral interactions (coverage efects)
+        EOHslope = 1.961846; EOOHslope = 1.629801
+        delEads_OH += EOHslope*coverage
+        delEads_OOH += EOOHslope*coverage
+    else:
+        EOHslope = 1.47132; EOOHslope = 1.694340
+        delEads_OH += EOHslope*coverage
+        delEads_OOH += EOOHslope*coverage
     
-    #applying average explicit solvation
-    if explicit == True and explicit_corr==False:
-        EOHerror = 0.44333; EOOHerror = 0.56763
-        delEads_OH += EOHerror
-        delEads_OOH += EOOHerror
-        
     # Species free energies at T = 298K
     G_OH = E_g[0] + delEads_OH + ZPE[0] - TS[0]
     G_OOH = E_g[1] + delEads_OOH + ZPE[1] - TS[1]
