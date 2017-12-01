@@ -5,7 +5,7 @@ Computes the rate of the oxygen reduction reaction
 
 import numpy as np
 
-def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0):
+def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0,variable_solvation=False,variable_coverage=False):
     
     '''
     Compute ORR rate from OH and OOH binding energies
@@ -18,6 +18,8 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0):
     :optional param explicit: converts from implicit to explicit solvation, default=False
     :optional param oxygen: scales energies for presence of oxygen (1/9 ML atomic O), default=False
     :optional param coverage (ML): scales energies for lateral interactions default=0
+    :optional param variable: incorporates GCN dependendence of the explicit
+    solvation and coverage effects through the dependence on implicit energy (default=False)
     :returns: Current [miliAmperes (mA) per atom]
     '''        
     kB = 8.617e-5                      # eV / K
@@ -37,25 +39,60 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0):
     #add implicit solvation energy
     delEads_OH += E_solv[0]
     delEads_OOH += E_solv[1]
+    delEads_OHimplicit = delEads_OH
+    delEads_OOHimplicit = delEads_OOH
+    
     
     #exchange implicit for explicit solvation effects
     if explicit == True:
-        EOHimpl2expl = 0.268498; EOOHimpl2expl = 0.392798
+        if variable_solvation == False:
+            EOHimpl2expl = 0.268498; EOOHimpl2expl = 0.392798
+        else:
+            EOHimpl2expl = -0.821436*delEads_OHimplicit + -2.149054
+            EOOHimpl2expl = 0.224696*delEads_OOHimplicit + 0.763818
         delEads_OH += EOHimpl2expl
         delEads_OOH += EOOHimpl2expl
-    #add effects of oxygen covered surface
-    if oxygen == True:
-        EOHwO = 0.26074; EOOHwO = 0.27617
-        delEads_OH += EOHwO
-        delEads_OOH += EOOHwO  
-        #add lateral interactions (coverage efects)
-        EOHslope = 1.961846; EOOHslope = 1.629801
-        delEads_OH += EOHslope*coverage
-        delEads_OOH += EOOHslope*coverage
-    else:
-        EOHslope = 1.47132; EOOHslope = 1.694340
-        delEads_OH += EOHslope*coverage
-        delEads_OOH += EOOHslope*coverage
+       
+
+    if variable_coverage==False:     
+        #add effects of oxygen covered surface
+        if oxygen == True:
+            EOHwO = 0.26074; EOOHwO = 0.23587
+            delEads_OH += EOHwO
+            delEads_OOH += EOOHwO  
+            #add lateral interactions (coverage efects)
+            EOHslope = 1.961846; EOOHslope = 1.674249
+            delEads_OH += EOHslope*coverage
+            delEads_OOH += EOOHslope*coverage
+        else:
+            EOHslope = 1.47132; EOOHslope = 2.02206
+            delEads_OH += EOHslope*coverage
+            delEads_OOH += EOOHslope*coverage        
+
+    if variable_coverage==True:
+        #add effects of oxygen covered surface
+        if oxygen == True:
+            EOHwO = 0.26074; EOOHwO = 0.23587
+            delEads_OH += EOHwO
+            delEads_OOH += EOOHwO  
+            #add lateral interactions (coverage efects)
+            if delEads_OHimplicit < -2.955644: #low GCN
+                EOHslope = (1.08204*delEads_OHimplicit+4.66945)*1.961846/1.47132
+                EOOHslope = (0.100104*delEads_OOHimplicit+2.17707)*1.674249/2.02206
+            else: #high GCN
+                EOHslope = (-3.10387*delEads_OHimplicit+-7.702618)*1.961846/1.47132
+                EOOHslope = (-8.79389*delEads_OOHimplicit-11.5954)*1.674249/2.02206
+            delEads_OH += EOHslope*coverage
+            delEads_OOH += EOOHslope*coverage
+        else:
+            if delEads_OHimplicit < -2.955644: #low GCN
+                EOHslope = (1.08204*delEads_OHimplicit+4.66945)
+                EOOHslope = (0.100104*delEads_OOHimplicit+2.17707)
+            else: #high GCN
+                EOHslope = (-3.10387*delEads_OHimplicit+-7.702618)
+                EOOHslope = (-8.79389*delEads_OOHimplicit-11.5954)
+            delEads_OH += EOHslope*coverage
+            delEads_OOH += EOOHslope*coverage
     
     # Species free energies at T = 298K
     G_OH = E_g[0] + delEads_OH + ZPE[0] - TS[0]
