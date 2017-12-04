@@ -61,11 +61,11 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0,vari
             delEads_OH += EOHwO
             delEads_OOH += EOOHwO  
             #add lateral interactions (coverage efects)
-            EOHslope = 1.961846; EOOHslope = 1.674249
+            EOHslope = 1.97395; EOOHslope = 1.923899
             delEads_OH += EOHslope*coverage
             delEads_OOH += EOOHslope*coverage
         else:
-            EOHslope = 1.47132; EOOHslope = 2.02206
+            EOHslope = 1.51540; EOOHslope = 1.75421
             delEads_OH += EOHslope*coverage
             delEads_OOH += EOOHslope*coverage        
 
@@ -77,20 +77,20 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0,vari
             delEads_OOH += EOOHwO  
             #add lateral interactions (coverage efects)
             if delEads_OHimplicit < -2.955644: #low GCN
-                EOHslope = (1.08204*delEads_OHimplicit+4.66945)*1.961846/1.47132
-                EOOHslope = (0.100104*delEads_OOHimplicit+2.17707)*1.674249/2.02206
+                EOHslope = (1.70205*delEads_OHimplicit+6.54605)*1.97395/1.51540
+                EOOHslope = (-0.8148936*delEads_OOHimplicit+0.49234)*1.923899/1.75421
             else: #high GCN
-                EOHslope = (-3.10387*delEads_OHimplicit+-7.702618)*1.961846/1.47132
-                EOOHslope = (-8.79389*delEads_OOHimplicit-11.5954)*1.674249/2.02206
+                EOHslope = (-2.04163*delEads_OHimplicit+-4.51894)*1.97395/1.51540
+                EOOHslope = (-7.264414*delEads_OOHimplicit-9.494835)*1.923899/1.75421
             delEads_OH += EOHslope*coverage
             delEads_OOH += EOOHslope*coverage
         else:
             if delEads_OHimplicit < -2.955644: #low GCN
-                EOHslope = (1.08204*delEads_OHimplicit+4.66945)
-                EOOHslope = (0.100104*delEads_OOHimplicit+2.17707)
+                EOHslope = (1.70205*delEads_OHimplicit+6.54605)
+                EOOHslope = (-0.8148936*delEads_OOHimplicit+0.49234)
             else: #high GCN
-                EOHslope = (-3.10387*delEads_OHimplicit+-7.702618)
-                EOOHslope = (-8.79389*delEads_OOHimplicit-11.5954)
+                EOHslope = (-2.04163*delEads_OHimplicit+-4.51894)
+                EOOHslope = (-7.26441*delEads_OOHimplicit-9.494835)
             delEads_OH += EOHslope*coverage
             delEads_OOH += EOOHslope*coverage
     

@@ -58,7 +58,7 @@ Plot volcano plots
 n_GCNs = 100
 
 if metal_name == 'Pt':
-    GCN_vec = np.linspace(1,15,n_GCNs)
+    GCN_vec = np.linspace(1,10,n_GCNs)
 elif metal_name == 'Au':
     GCN_vec = np.linspace(2,8,n_GCNs)
 
@@ -74,7 +74,7 @@ for i in xrange(n_GCNs):
     
     # Data for deterministic volcano
     BEs = x.get_BEs(GCN_vec[i], uncertainty = False)
-    rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=1.0/3.0,variable_solvation=True,variable_coverage=True)
+    rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=3.0/9.0,variable_solvation=True,variable_coverage=True)
     det_vol[i] = rate
     
     n_MC_samples = 1000
@@ -85,12 +85,12 @@ for i in xrange(n_GCNs):
 
         # Unocorrelated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = False)
-        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=1.0/3.0,variable_solvation=True,variable_coverage=True)
+        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=3.0/9.0,variable_solvation=True,variable_coverage=True)
         data_uncorr[j] = rate
     
         # Correlated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = True)
-        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=1.0/3.0,variable_solvation=True,variable_coverage=True)
+        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=3.0/9.0,variable_solvation=True,variable_coverage=True)
         data_corr[j] = rate
     
     data_uncorr = np.sort(data_uncorr)
