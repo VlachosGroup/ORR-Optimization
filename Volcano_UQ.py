@@ -74,7 +74,7 @@ for i in xrange(n_GCNs):
     
     # Data for deterministic volcano
     BEs = x.get_BEs(GCN_vec[i], uncertainty = False)
-    rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=3.0/9.0,variable_solvation=True,variable_coverage=True)
+    rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=False,coverage=3.0/9.0,variable_solvation=False,variable_coverage=True)
     det_vol[i] = rate
     
     n_MC_samples = 1000
@@ -85,12 +85,12 @@ for i in xrange(n_GCNs):
 
         # Unocorrelated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = False)
-        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=3.0/9.0,variable_solvation=True,variable_coverage=True)
+        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=False,coverage=3.0/9.0,variable_solvation=False,variable_coverage=True)
         data_uncorr[j] = rate
     
         # Correlated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = True)
-        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=True,coverage=3.0/9.0,variable_solvation=True,variable_coverage=True)
+        rate = ORR_rate(BEs[0], BEs[1],explicit=True,oxygen=False,coverage=3.0/9.0,variable_solvation=False,variable_coverage=True)
         data_corr[j] = rate
     
     data_uncorr = np.sort(data_uncorr)
