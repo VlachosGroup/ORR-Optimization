@@ -44,7 +44,7 @@ class orr_cat(dynamic_cat):
             BEs = self.metal.get_BEs(GCN_vec[ind])
             BE_OH = BEs[0]
             BE_OOH = BEs[1]
-            volcano[ind] = ORR_rate(BE_OH, BE_OOH)
+            volcano[ind] = ORR_rate(BE_OH, BE_OOH,explicit=True,coverage=True)
         
         self.i_max = np.max(volcano)
         
@@ -136,7 +136,7 @@ class orr_cat(dynamic_cat):
                     BEs = self.metal.get_BEs(gcn)
                     BE_OH = BEs[0]
                     BE_OOH = BEs[1]
-                    curr_list[i] = ORR_rate(BE_OH, BE_OOH)
+                    curr_list[i] = ORR_rate(BE_OH, BE_OOH,explicit=True,coverage=True)
                     
         curr_list = np.transpose( np.array(curr_list).reshape([2,self.atoms_per_layer]) )  
         return curr_list

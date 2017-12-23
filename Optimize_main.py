@@ -12,8 +12,9 @@ from sim_anneal import *
 import matplotlib.pyplot as plt
 import matplotlib as mat
 
-data_fldr = '/home/vlachos/mpnunez/ORR_data/optimization/mixed'
-MOO_weight = 0.75
+data_fldr = '~/Box Sync/Synced_Files/Coding/Research/ORR Marcel/'
+data_fldr = os.path.expanduser(data_fldr)
+MOO_weight = 1
 
 '''
 Build catalyst structure
@@ -35,7 +36,7 @@ Multiobjective optimization (stage 1)
 '''
 
 # Optimize
-traj_hist_a = optimize(cat, weight = MOO_weight, ensemble = 'GCE', n_cycles = 200, T_0 = 1.2, 
+traj_hist_a = optimize(cat, weight = MOO_weight, ensemble = 'GCE', n_cycles = 25, T_0 = 1.2, 
     j_norm = I_norm, se_norm = E_form_norm, n_record = 100, verbose = True)
 np.save(os.path.join(data_fldr, 'trajectory_a.npy'), traj_hist_a)
 
@@ -77,7 +78,7 @@ Surface energy minimization to meta-stable structure (stage 2)
 '''
 
 # Optimize
-traj_hist_b = optimize(cat, weight = 0., ensemble = 'CE', n_cycles = 50, T_0 = 0, n_record = 100, verbose = True)
+traj_hist_b = optimize(cat, weight = 0., ensemble = 'CE', n_cycles = 25, T_0 = 0, n_record = 100, verbose = True)
 np.save(os.path.join(data_fldr, 'trajectory_b.npy'), traj_hist_b)
 
 # Plot current density profile

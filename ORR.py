@@ -5,7 +5,7 @@ Computes the rate of the oxygen reduction reaction
 
 import numpy as np
 
-def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0,variable_solvation=False,variable_coverage=False):
+def ORR_rate(delEads_OH, delEads_OOH,explicit=False,coverage=False):
     
     '''
     Compute ORR rate from OH and OOH binding energies
@@ -37,63 +37,28 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,oxygen=False,coverage=0,vari
     E_solv = [-0.575, -0.480]           # solvation energy, eV
 
     #add implicit solvation energy
+    delEads_OHGCN = delEads_OH
     delEads_OH += E_solv[0]
     delEads_OOH += E_solv[1]
-    delEads_OHimplicit = delEads_OH
-    delEads_OOHimplicit = delEads_OOH
+    
     
     
     #exchange implicit for explicit solvation effects
     if explicit == True:
-        if variable_solvation == False:
-            EOHimpl2expl = 0.01699; EOOHimpl2expl = 0.14129
-        else:
-            if delEads_OHimplicit < -3.40232617: #low GCN
-                EOHimpl2expl = 0.39704617; EOOHimpl2expl = 0.07744913
-            elif delEads_OHimplicit < -2.76418147: #GCN between 5.167 and 8.5
-                EOHimpl2expl = -0.821436*delEads_OHimplicit + -2.4005615
-                EOOHimpl2expl = 0.224696*delEads_OOHimplicit + 0.5123095
-            else: # GCN greater than 8.5
-                EOHimpl2expl = -0.12339853; EOOHimpl2expl = 0.2072225
+        EOHimpl2expl = -0.410203; EOOHimpl2expl = 0.179228
         delEads_OH += EOHimpl2expl
         delEads_OOH += EOOHimpl2expl
            
-    #add effects of oxygen covered surface
-    if oxygen == True:
-        EOHwO = 0.26074; EOOHwO = 0.23587
-        delEads_OH += EOHwO
-        delEads_OOH += EOOHwO  
-        #add lateral interactions (coverage efects)
-        if variable_coverage == False:
-            EOHslope = 1.97395; EOOHslope = 1.923899
-        else:
-             #add lateral interactions (coverage efects)
-            if delEads_OHimplicit < -3.40232617: #low GCN
-                EOHslope = 0.7551196*1.97395/1.51540; EOOHslope = 2.076786*1.923899/1.75421
-            elif delEads_OHimplicit < -2.955644: #GCN between 5.167 and 7.5
-                EOHslope = (1.70205*delEads_OHimplicit+6.54605)*1.97395/1.51540
-                EOOHslope = (-0.8148936*delEads_OOHimplicit+0.49234)*1.923899/1.75421
-            elif delEads_OHimplicit < -2.76418147: #GCN between 7.5 and 8.5
-                EOHslope = (-2.04163*delEads_OHimplicit+-4.51894)*1.97395/1.51540
-                EOOHslope = (-7.26441*delEads_OOHimplicit-9.494835)*1.923899/1.75421
-            else: # GCN greater than 8.5
-                EOHslope = 1.1245*1.97395/1.51540; EOOHslope = 0.52165*1.923899/1.75421
-    else:
-        if variable_coverage == False:
-            EOHslope = 1.51540; EOOHslope = 1.75421  
-        else:
-            if delEads_OHimplicit < -3.40232617: #low GCN
-                EOHslope = 0.7551196; EOOHslope = 2.076786
-            elif delEads_OHimplicit < -2.955644: #GCN between 5.167 and 7.5
-                EOHslope = (1.70205*delEads_OHimplicit+6.54605)
-                EOOHslope = (-0.8148936*delEads_OOHimplicit+0.49234)
-            elif delEads_OHimplicit < -2.76418147: #GCN between 7.5 and 8.5
-                EOHslope = (-2.04163*delEads_OHimplicit+-4.51894)
-                EOOHslope = (-7.26441*delEads_OOHimplicit-9.494835)
-            else: # GCN greater than 8.5
-                EOHslope = 1.1245; EOOHslope = 0.52165
-    delEads_OH += EOHslope*coverage
-    delEads_OOH += EOOHslope*coverage
+    if coverage == True:
+         #add lateral interactions (coverage efects)
+        if delEads_OHGCN < -2.476: #low GCN/edge (less than 7)
+            dGdOH = 0.42526; dGdOOH = 0.54928
+        elif delEads_OHGCN < -2.2849: #GCN between 7 and 8 (plane)
+            dGdOH = 0.89976; dGdOOH = 0.24973
+        else: #high GCN/cavity (greater than 8)
+            dGdOH = 0; dGdOOH = 0.120506
+    delEads_OH += dGdOH
+    delEads_OOH += dGdOOH
     
     # Species free energies at T = 298K
     G_OH = E_g[0] + delEads_OH + ZPE[0] - TS[0]
