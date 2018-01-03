@@ -51,12 +51,16 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,coverage=False):
            
     if coverage == True:
          #add lateral interactions (coverage efects)
-        if delEads_OHGCN < -2.476: #low GCN/edge (less than 7)
-            dGdOH = 0.42526; dGdOOH = 0.54928
-        elif delEads_OHGCN < -2.2849: #GCN between 7 and 8 (plane)
-            dGdOH = 0.89976; dGdOOH = 0.24973
-        else: #high GCN/cavity (greater than 8)
-            dGdOH = 0; dGdOOH = 0.120506
+        if delEads_OHGCN < -2.827: #low GCN/edge (less than 5.167)
+            dGdOH = 0.4253; dGdOOH = 0.5493
+        elif delEads_OHGCN < -2.3806: #GCN less than 7.5
+            dGdOH = 1.06227662*delEads_OHGCN + 3.4287025
+            dGdOOH = -0.67072303*delEads_OHGCN + -1.34705277
+        elif delEads_OHGCN < -2.1892: #GCN less than 8.5
+            dGdOH = -4.69961341*delEads_OHGCN + -10.2883066
+            dGdOOH = -0.67480557*delEads_OHGCN + -1.35677185
+        else: #high GCN/cavity (greater than 8.5)
+            dGdOH = 0; dGdOOH = 0.1205
     delEads_OH += dGdOH
     delEads_OOH += dGdOOH
     
