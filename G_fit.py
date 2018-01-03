@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Regresses surface energy as a function of coverage. The derivative is taken 
-to determine adsorption energies at different coverages and the coverage at
-steady state is calculated using an MKM.
+Regresses surface energy as a function of coverage for the Pt111 surface. The
+derivative is taken to determine adsorption energies at different coverages
+and the coverage at steady state is calculated using an MKM.
 
 @author: lansf
 """
