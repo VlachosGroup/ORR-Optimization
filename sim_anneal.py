@@ -23,6 +23,7 @@ def optimize(cat, weight = 1.0, ensemble = 'GCE', n_cycles = 100, T_0 = 0.7, j_n
     '''
     
     total_steps = n_cycles * cat.atoms_per_layer
+    tau = total_steps / 5.0
     
     # Evaluate initial structure
     total_current = cat.eval_current_density(normalize = False)
@@ -49,7 +50,7 @@ def optimize(cat, weight = 1.0, ensemble = 'GCE', n_cycles = 100, T_0 = 0.7, j_n
     
     for step in range( total_steps ):
                     
-        Metro_temp = T_0 / np.log(step+2)             # Set temperature
+        Metro_temp = T_0  * np.exp( - step / tau )             # Set temperature
         j_prev = total_current
         E_form_prev = E_form
         OF_prev = OF                                                        # Record data before changing structure
@@ -65,7 +66,7 @@ def optimize(cat, weight = 1.0, ensemble = 'GCE', n_cycles = 100, T_0 = 0.7, j_n
         E_form = cat.eval_surface_energy(normalize = False)
         OF = -weight * total_current / j_norm + (1-weight) * E_form / se_norm                  
         
-        if OF - OF_prev < 0:                # Downhill move
+        if OF - OF_prev < 0 or Metro_temp == np.inf:                # Downhill move or infinite temperature
             accept = True
         else:                               # Uphill move
             if Metro_temp > 0:              # Finite temperature, may accept uphill moves

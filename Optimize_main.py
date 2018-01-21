@@ -6,14 +6,15 @@ Stage 2: Minimize surface energy by moving atoms to adjacent locations at consta
 '''
 
 import os
+import numpy as np
 from orr_cat import orr_cat
 from sim_anneal import *
 
 import matplotlib.pyplot as plt
 import matplotlib as mat
 
-data_fldr = '~/Box Sync/Synced_Files/Coding/Research/ORR Marcel/'
-data_fldr = os.path.expanduser(data_fldr)
+data_fldr = '.'
+#data_fldr = os.path.expanduser(data_fldr)
 MOO_weight = 1
 
 '''
@@ -72,6 +73,8 @@ plt.close()
 cat.occs_to_atoms()
 cat.show(fname = os.path.join(data_fldr, 'optimized'), fmat = 'png', transmute_top = True)
 cat.show(fname = os.path.join(data_fldr, 'optimized'), fmat = 'xsd', transmute_top = True)
+
+raise NameError('stop')
 
 '''
 Surface energy minimization to meta-stable structure (stage 2)

@@ -10,6 +10,7 @@ from ase.neighborlist import NeighborList
 
 from metal import metal
 from ORR import ORR_rate
+from orr_mkm import *
 from graph_theory import Graph
 from dynamic_cat import dynamic_cat
 
@@ -38,15 +39,8 @@ class orr_cat(dynamic_cat):
         self.metal = metal(met_name)
         
         # Compute normalization factor from volcano plot
-        GCN_vec = np.linspace(3,10)
-        volcano = np.zeros(GCN_vec.shape)
-        for ind in xrange(len(GCN_vec)):
-            BEs = self.metal.get_BEs(GCN_vec[ind])
-            BE_OH = BEs[0]
-            BE_OOH = BEs[1]
-            volcano[ind] = ORR_rate(BE_OH, BE_OOH,explicit=True,coverage=True)
-        
-        self.i_max = np.max(volcano)
+        self.volcano_data = np.load('volcano_data.npy')        # maximum is edge sites at unrealistically high GCN
+        self.i_max = np.max(self.volcano_data[:,1::])
         
         
         '''
@@ -133,11 +127,22 @@ class orr_cat(dynamic_cat):
             if self.defected_graph.is_node(site_ind):
                 if self.defected_graph.get_coordination_number(site_ind) <= self.active_CN:
                     gcn = self.defected_graph.get_generalized_coordination_number(site_ind)
-                    BEs = self.metal.get_BEs(gcn)
-                    BE_OH = BEs[0]
-                    BE_OOH = BEs[1]
-                    curr_list[i] = ORR_rate(BE_OH, BE_OOH,explicit=True,coverage=True)
                     
+                    if i < self.atoms_per_layer:                                      # bottom layer
+                        if gcn > 7.9:                                                   # cavity, not sure of the appropritate cutoff
+                            site_type_rates = self.volcano_data[:,2]    
+                        else:                                                           # terrace
+                            site_type_rates = self.volcano_data[:,1]
+                            #print 'bottom layer terrace'
+                    else:                                                               # top layer
+                        if self.defected_graph.get_coordination_number(site_ind) == 9:  # terrace
+                            site_type_rates = self.volcano_data[:,1]
+                        else:                                                           # edge
+                            site_type_rates = self.volcano_data[:,3]
+                        
+                    # interpolate data to get the rate
+                    curr_list[i] = np.exp( np.interp( gcn, self.volcano_data[:,0], np.log(site_type_rates) ) )
+                              
         curr_list = np.transpose( np.array(curr_list).reshape([2,self.atoms_per_layer]) )  
         return curr_list
         

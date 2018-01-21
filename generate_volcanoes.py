@@ -31,8 +31,36 @@ for GCN in GCN_edge:
     t, solution = MKM.get_coverage([8.5,GCN])
     rate = MKM.get_rate([8.5,GCN],solution[-1])
     rate_edge.append(rate[1])
+
+'''
+Normalize
+'''
+
+rate_terrace = np.array(rate_terrace)
+rate_cavity = np.array(rate_cavity)
+rate_edge = np.array(rate_edge)
     
+Pt111_norm = 1.35703847925e-15      # experimental value in mA / atom for Pt(111) at GCN = 7.5
+Pt111_now = np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
+
+rate_terrace = rate_terrace * Pt111_norm / Pt111_now
+rate_cavity = rate_cavity * Pt111_norm / Pt111_now
+rate_edge = rate_edge * Pt111_norm / Pt111_now
+
+print np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
+raise NameError('stop')
+
+'''
+Plot volcano
+'''
+
 plt.plot(GCN_terrace,np.log10(rate_terrace),GCN_cavity,np.log10(rate_cavity),GCN_edge,np.log10(rate_edge))
 plt.legend(['Terrace','Cavity','Edge'])
-plt.ylabel('log10(rate)')
+plt.ylabel('log10(rate) [mA/atom]')
 plt.xlabel('GCN')
+
+
+# Output into data table
+
+vol_data = np.transpose( np.vstack([GCN_terrace, rate_terrace, rate_cavity, rate_edge]) )
+np.save('volcano_data.npy', vol_data)
