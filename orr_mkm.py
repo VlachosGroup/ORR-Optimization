@@ -28,11 +28,11 @@ class ORR_MKM:
         data_file = 'Surface_Energies.csv'
         data_file = os.path.expanduser(data_file)
         CovDat = read_csv(data_file)
-        Coverages = np.array([CovDat.OHcov,CovDat.Ocov,CovDat.OOHcov])
+        Coverages = np.array([CovDat.OHcov,CovDat.OOHcov,CovDat.Ocov])
         WaterReplacement = np.sum(CovDat[['OHcov','OOHcov']],axis=1)*9*self.G_H2Osurf
-        def Gsurf(Coverageinput,s,tp,u,x,y,z,GOHo,GOo,GOOHo):
-            OHcov, Ocov, OOHcov = Coverageinput
-            Gval = GOHo*OHcov + GOo*Ocov + GOOHo*OOHcov + s*(tp*Ocov+OHcov)**u + x*(y*Ocov+OHcov)**z*OOHcov
+        def Gsurf(Coverageinput,s,tp,u,x,y,z,GOHo,GOOHo,GOo):
+            OHcov, OOHcov, Ocov = Coverageinput
+            Gval = GOHo*OHcov + GOOHo*OOHcov + GOo*Ocov + s*(tp*Ocov+OHcov)**u + x*(y*Ocov+OHcov)**z*OOHcov
             return Gval
         Go = -385.40342
         Energies = CovDat.Energy.as_matrix() + WaterReplacement - Go
@@ -42,28 +42,29 @@ class ORR_MKM:
         emax=4
         self.popt, pcov = curve_fit(Gsurf,Coverages,Energies/9.0,bounds=(np.array([lmin,lmin,emin,lmin,lmin,emin,-20,-20,-20]),np.array([lmax,lmax,emax,lmax,lmax,emax,0,0,0])))
         def dGdOH(Coverageinput,popt,GCN_scaling):
-            s,tp,u,x,y,z,GOHo,GOo,GOOHo = popt
+            s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHcov, OOHcov, Ocov = Coverageinput
             dGval = GOHo*GCN_scaling + u*s*(tp*Ocov+OHcov)**(u-1) + z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
             return dGval
-            
-        def dGdO(Coverageinput,popt):
-            s,tp,u,x,y,z,GOHo,GOo,GOOHo = popt
-            Coverageinput = [i if i>0 else 0 for i in Coverageinput]
-            OHcov, OOHcov, Ocov = Coverageinput
-            dGval = GOo + tp*u*s*(tp*Ocov+OHcov)**(u-1)+y*z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
-            return dGval
-            
+                    
         def dGdOOH(Coverageinput,popt,GCN_scaling):
-            s,tp,u,x,y,z,GOHo,GOo,GOOHo = popt
+            s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHcov, OOHcov, Ocov = Coverageinput
             dGval = GOOHo*GCN_scaling + x*(y*Ocov+OHcov)**z
             return dGval
+        
+        def dGdO(Coverageinput,popt):
+            s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
+            Coverageinput = [i if i>0 else 0 for i in Coverageinput]
+            OHcov, OOHcov, Ocov = Coverageinput
+            dGval = GOo + tp*u*s*(tp*Ocov+OHcov)**(u-1)+y*z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
+            return dGval
+
         self.dGdOH = dGdOH
-        self.dGdO = dGdO
         self.dGdOOH = dGdOOH
+        self.dGdO = dGdO
         
     def Gfit_cavity_edge(self):
         data_file = 'Surface_Energies_cavity.csv'
@@ -86,7 +87,7 @@ class ORR_MKM:
         def dGdOHedge(Coverageinput,popt,popt_terrace,GCN_scaling):
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
-            ,GOHo_terrace,GOo_terrace,GOOHo_terrace) = popt_terrace
+            ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
             dGval = GOHedgeo*GCN_scaling + y*x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
@@ -96,7 +97,7 @@ class ORR_MKM:
         def dGdOHcav(Coverageinput,popt,popt_terrace,GCN_scaling):
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
-            ,GOHo_terrace,GOo_terrace,GOOHo_terrace) = popt_terrace
+            ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
             dGval = GOHcavo*GCN_scaling + x2*(OHedge+OOHedge)
@@ -106,7 +107,7 @@ class ORR_MKM:
         def dGdOOHedge(Coverageinput,popt,popt_terrace,GCN_scaling):
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
-            ,GOHo_terrace,GOo_terrace,GOOHo_terrace) = popt_terrace
+            ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
             dGval = GOOHedgeo*GCN_scaling + x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
@@ -116,7 +117,7 @@ class ORR_MKM:
         def dGdOOHcav(Coverageinput,popt,popt_terrace,GCN_scaling):
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
-            ,GOHo_terrace,GOo_terrace,GOOHo_terrace) = popt_terrace
+            ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav,Ocov = Coverageinput
             dGval = GOOHcavo*GCN_scaling + x3*(OHedge + OOHedge)
@@ -336,7 +337,7 @@ class ORR_MKM:
         dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[0])
         dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[1])
         dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[1])
-        dE_Ofcc = self.dGdO(np.array([(OHedge+OHcav),(Ocovfcc+Ocovatop),(OOHedge+OOHcav)]),popt_terrace)
+        dE_Ofcc = self.dGdO(np.array([(OHedge+OHcav),(OOHedge+OOHcav),(Ocovfcc+Ocovatop)]),popt_terrace)
         # Species free energies at T = 298K
         G_OHedge = dE_OHedge + ZPE[0] - TS[0] #G minus G of surface
         G_OOHedge = dE_OOHedge + ZPE[1] - TS[1] # G minus G of surface
@@ -476,7 +477,7 @@ class ORR_MKM:
         dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[0])
         dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[1])
         dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[1])
-        dE_Ofcc = self.dGdO(np.array([(OHedge+OHcav),(Ocovfcc+Ocovatop),(OOHedge+OOHcav)]),popt_terrace)
+        dE_Ofcc = self.dGdO(np.array([(OHedge+OHcav),(OOHedge+OOHcav),(Ocovfcc+Ocovatop)]),popt_terrace)
         # Species free energies at T = 298K
         G_OHedge = dE_OHedge + ZPE[0] - TS[0] #G minus G of surface
         G_OOHedge = dE_OOHedge + ZPE[1] - TS[1] # G minus G of surface
