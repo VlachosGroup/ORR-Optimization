@@ -8,6 +8,7 @@ from __future__ import division
 import numpy as np
 from orr_mkm import ORR_MKM
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 MKM = ORR_MKM('terrace')
 GCN_terrace = np.linspace(2,9,100)
@@ -60,6 +61,16 @@ plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
 
+GCNlist = np.linspace(2,9,100)
+rate_list = []
+MKM = ORR_MKM('cavity_edge')
+for GCN1 in GCNlist:
+    for GCN2 in GCNlist:
+        t, solution = MKM.get_coverage([GCN1,GCN2])
+        rate = MKM.get_rate([GCN1,GCN2],solution[-1])
+        rate_list.append(np.sum(rate))
+
+
 '''
 Normalize
 '''
@@ -87,7 +98,17 @@ plt.legend(['Terrace','Cavity','Edge'])
 plt.ylabel('log$_{10}$(rate) [mA/atom]')
 plt.xlabel('GCN')
 
-
+rate_matrix = (np.array(rate_list)*Pt111_norm / Pt111_now).reshape(50,50)
+plt.figure(4)
+plt.pcolor(GCNlist, GCNlist, rate_matrix,cmap='jet')
+plt.ylabel('cavity GCN',size=20)
+plt.xlabel('edge GCN',size=20)
+plt.xticks(size=18)
+plt.yticks(size=18)
+plt.colorbar(label='rate [mA/atom]')
+plt.gcf().subplots_adjust(bottom=0.15)
+plt.gcf().subplots_adjust(left=0.12)
+plt.show()
 # Output into data table
 
 vol_data = np.transpose( np.vstack([GCN_terrace, rate_terrace, rate_cavity, rate_edge]) )
