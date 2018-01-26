@@ -8,7 +8,6 @@ from __future__ import division
 import numpy as np
 from orr_mkm import ORR_MKM
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
 MKM = ORR_MKM('terrace')
 GCN_terrace = np.linspace(2,9,100)
@@ -30,6 +29,7 @@ for GCN in GCN_cavity:
     rate = MKM.get_rate([GCN,5.167],solution[-1])
     rate_cavity.append(rate[0])
 coverage_cavity = np.array(coverage_cavity)
+
 MKM = ORR_MKM('cavity_edge')
 GCN_edge = np.linspace(2,9,100)
 rate_edge = []
@@ -61,16 +61,16 @@ plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
 
-GCNlist = np.linspace(2,9,100)
-rate_list = []
+"""Generating 2D map of rate for cavity and edge sites"""
+rate_cavity_edge = []
 MKM = ORR_MKM('cavity_edge')
-for GCN1 in GCNlist:
-    for GCN2 in GCNlist:
+GCN_cavity_edge = []
+for GCN1 in np.linspace(6,10,50):
+    for GCN2 in np.linspace(4,8,50):
         t, solution = MKM.get_coverage([GCN1,GCN2])
         rate = MKM.get_rate([GCN1,GCN2],solution[-1])
-        rate_list.append(np.sum(rate))
-
-
+        rate_cavity_edge.append(np.sum(rate))
+        GCN_cavity_edge.append(np.array([GCN1,GCN2]))
 '''
 Normalize
 '''
@@ -78,6 +78,7 @@ Normalize
 rate_terrace = np.array(rate_terrace)
 rate_cavity = np.array(rate_cavity)
 rate_edge = np.array(rate_edge)
+rate_cavity_edge = np.array(rate_cavity_edge)
     
 Pt111_norm = 1.35703847925e-15      # experimental value in mA / atom for Pt(111) at GCN = 7.5
 Pt111_now = np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
@@ -87,7 +88,7 @@ rate_cavity = rate_cavity * Pt111_norm / Pt111_now
 rate_edge = rate_edge * Pt111_norm / Pt111_now
 
 print np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
-raise NameError('stop')
+#raise NameError('stop')
 
 '''
 Plot volcano
@@ -95,19 +96,24 @@ Plot volcano
 plt.figure(3)
 plt.plot(GCN_terrace,np.log10(rate_terrace),GCN_cavity,np.log10(rate_cavity),GCN_edge,np.log10(rate_edge))
 plt.legend(['Terrace','Cavity','Edge'])
-plt.ylabel('log$_{10}$(rate) [mA/atom]')
+plt.ylabel('log$_{10}$(rate) log$_{10}$[mA/atom]')
 plt.xlabel('GCN')
 
-rate_matrix = (np.array(rate_list)*Pt111_norm / Pt111_now).reshape(50,50)
+"""plotting 2D volcano"""
+rate_list2 = np.array([i if i>0 else 10**16 for i in rate_cavity_edge])
+rate_list2 = np.array([i if i<> 10**16 else min(rate_list2) for i in rate_list2])*Pt111_norm / Pt111_now
+rate_matrix = (rate_list2).reshape(50,50)
+GCN_cavity_edge = np.array(GCN_cavity_edge)
 plt.figure(4)
-plt.pcolor(GCNlist, GCNlist, rate_matrix,cmap='jet')
+#plt.pcolor(np.linspace(4,8,50), np.linspace(6,10,50), rate_matrix,cmap='jet')
+plt.scatter(GCN_cavity_edge[:,1],GCN_cavity_edge[:,0],c=np.log10(rate_list2),cmap='jet',edgecolors='face')
 plt.ylabel('cavity GCN',size=20)
 plt.xlabel('edge GCN',size=20)
 plt.xticks(size=18)
 plt.yticks(size=18)
-plt.colorbar(label='rate [mA/atom]')
+plt.colorbar(label='log$_{10}$(rate) log$_{10}$[mA/atom]')
 plt.gcf().subplots_adjust(bottom=0.15)
-plt.gcf().subplots_adjust(left=0.12)
+plt.gcf().subplots_adjust(left=0.17)
 plt.show()
 # Output into data table
 
