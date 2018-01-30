@@ -61,6 +61,8 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,coverage=False):
             dGdOOH = -0.67480557*delEads_OHGCN + -1.35677185
         else: #high GCN/cavity (greater than 8.5)
             dGdOH = 0; dGdOOH = 0.1205
+    else:
+        dGdOH = 0; dGdOOH = 0
     delEads_OH += dGdOH
     delEads_OOH += dGdOOH
     

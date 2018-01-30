@@ -8,19 +8,31 @@ from __future__ import division
 import numpy as np
 from orr_mkm import ORR_MKM
 import matplotlib.pyplot as plt
+from metal import metal
+from ORR import ORR_rate
+metal_name = 'Pt'
+x = metal(metal_name)
 
 MKM = ORR_MKM('terrace')
-GCN_terrace = np.linspace(2,9,100)
+GCN_terrace = np.linspace(5,9,100)
 rate_terrace = []
 coverage_terrace = []
+rate_0cov = []
+rate_impl = []
+rate_vallejo = []
 for GCN in GCN_terrace:
     t, solution = MKM.get_coverage(GCN)
     coverage_terrace.append(solution[-1])
     rate = MKM.get_rate(GCN,solution[-1])
     rate_terrace.append(rate)
+    BEs = x.get_BEs(GCN, uncertainty = False)
+    rate_vallejo.append(ORR_rate(BEs[0], BEs[1],explicit=False,coverage=False))
+    rate_0cov.append(ORR_rate(BEs[0], BEs[1],explicit=True,coverage=False))
+    rate_impl.append(ORR_rate(BEs[0] + MKM.dGdOH(solution[-1,0:3],MKM.popt,0) - MKM.dGdOH(np.zeros(3),MKM.popt,0)
+    , BEs[1] + MKM.dGdOOH(solution[-1,0:3],MKM.popt,0) - MKM.dGdOOH(np.zeros(3),MKM.popt,0),explicit=False,coverage=False))
 
 MKM = ORR_MKM('cavity_edge')
-GCN_cavity = np.linspace(2,9,100)
+GCN_cavity = np.linspace(5,9,100)
 rate_cavity = []
 coverage_cavity = []
 for GCN in GCN_cavity:
@@ -31,7 +43,7 @@ for GCN in GCN_cavity:
 coverage_cavity = np.array(coverage_cavity)
 
 MKM = ORR_MKM('cavity_edge')
-GCN_edge = np.linspace(2,9,100)
+GCN_edge = np.linspace(5,9,100)
 rate_edge = []
 coverage_edge = []
 for GCN in GCN_edge:
@@ -76,14 +88,21 @@ Normalize
 '''
 
 rate_terrace = np.array(rate_terrace)
+rate_vallejo = np.array(rate_vallejo)
+rate_0cov = np.array(rate_0cov)
+rate_impl = np.array(rate_impl)
 rate_cavity = np.array(rate_cavity)
 rate_edge = np.array(rate_edge)
 rate_cavity_edge = np.array(rate_cavity_edge)
     
 Pt111_norm = 1.35703847925e-15      # experimental value in mA / atom for Pt(111) at GCN = 7.5
 Pt111_now = np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
+Pt111_0cov = np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_0cov) ) )
+Pt111_impl = np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_impl) ) )
 
 rate_terrace = rate_terrace * Pt111_norm / Pt111_now
+rate_0cov = rate_0cov * Pt111_norm / Pt111_0cov
+rate_impl = rate_impl * Pt111_norm / Pt111_impl
 rate_cavity = rate_cavity * Pt111_norm / Pt111_now
 rate_edge = rate_edge * Pt111_norm / Pt111_now
 
@@ -93,9 +112,10 @@ print np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
 '''
 Plot volcano
 '''
+
 plt.figure(3)
 plt.plot(GCN_terrace,np.log10(rate_terrace),GCN_cavity,np.log10(rate_cavity),GCN_edge,np.log10(rate_edge))
-plt.legend(['Terrace','Cavity','Edge'])
+plt.legend(['Terrace','Cavity','Edge'],loc=2,frameon=False)
 plt.ylabel('log$_{10}$(rate) log$_{10}$[mA/atom]')
 plt.xlabel('GCN')
 
@@ -115,6 +135,14 @@ plt.colorbar(label='log$_{10}$(rate) log$_{10}$[mA/atom]')
 plt.gcf().subplots_adjust(bottom=0.15)
 plt.gcf().subplots_adjust(left=0.17)
 plt.show()
+
+"""comparing Pt111 rates"""
+plt.figure(5)
+plt.plot(GCN_terrace,np.log10(rate_vallejo),zorder=10)
+plt.plot(GCN_terrace,np.log10(rate_0cov),GCN_terrace,np.log10(rate_impl),GCN_terrace,np.log10(rate_terrace))
+plt.legend(['impl solv @ zero cov','expl solv @ zero cov','impl solv @ SS cov','expl solv @ SS cov'],loc=4,frameon=False)
+plt.ylabel('log$_{10}$(rate) log$_{10}$[mA/atom]')
+plt.xlabel('GCN')
 # Output into data table
 
 vol_data = np.transpose( np.vstack([GCN_terrace, rate_terrace, rate_cavity, rate_edge]) )
