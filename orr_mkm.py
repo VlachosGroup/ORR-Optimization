@@ -45,14 +45,14 @@ class ORR_MKM:
             s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHcov, OOHcov, Ocov = Coverageinput
-            dGval = GOHo*GCN_scaling + u*s*(tp*Ocov+OHcov)**(u-1) + z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
+            dGval = GOHo+GCN_scaling + u*s*(tp*Ocov+OHcov)**(u-1) + z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
             return dGval
                     
         def dGdOOH(Coverageinput,popt,GCN_scaling):
             s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHcov, OOHcov, Ocov = Coverageinput
-            dGval = GOOHo*GCN_scaling + x*(y*Ocov+OHcov)**z
+            dGval = GOOHo+GCN_scaling + x*(y*Ocov+OHcov)**z
             return dGval
         
         def dGdO(Coverageinput,popt):
@@ -90,7 +90,7 @@ class ORR_MKM:
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
-            dGval = GOHedgeo*GCN_scaling + y*x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
+            dGval = GOHedgeo+GCN_scaling + y*x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
             + u_terrace*s_terrace*(tp_terrace*Ocov)**(u_terrace-1)
             return dGval
 
@@ -100,7 +100,7 @@ class ORR_MKM:
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
-            dGval = GOHcavo*GCN_scaling + x2*(OHedge+OOHedge)
+            dGval = GOHcavo+GCN_scaling + x2*(OHedge+OOHedge)
             + u_terrace*s_terrace*(tp_terrace*Ocov)**(u_terrace-1)
             return dGval
         
@@ -110,7 +110,7 @@ class ORR_MKM:
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
-            dGval = GOOHedgeo*GCN_scaling + x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
+            dGval = GOOHedgeo+GCN_scaling + x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
             + x_terrace*(y_terrace*Ocov)**z_terrace
             return dGval
         
@@ -120,7 +120,7 @@ class ORR_MKM:
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav,Ocov = Coverageinput
-            dGval = GOOHcavo*GCN_scaling + x3*(OHedge + OOHedge)
+            dGval = GOOHcavo+GCN_scaling + x3*(OHedge + OOHedge)
             + x_terrace*(y_terrace*Ocov)**z_terrace
             return dGval
         self.dGdOHedge = dGdOHedge
@@ -590,11 +590,10 @@ class ORR_MKM:
     
     def get_coverage(self,GCN):
         if self.site_type == 'terrace':
-            E_gas = np.array([-7.73, -13.25]) #OH and OOH
             x = metal('Pt')
-            BEs_zerocov = x.get_BEs(GCN, uncertainty = False, correlations = False) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
-            BEs_7_5 = x.get_BEs(7.5, uncertainty = False, correlations = False)
-            GCN_scaling =  (BEs_zerocov + E_gas)/(BEs_7_5+E_gas)
+            BEs_zerocov = np.array(x.get_BEs(GCN, uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_7_5 = np.array(x.get_BEs(7.5, uncertainty = False, correlations = False))
+            GCN_scaling =  BEs_zerocov - BEs_7_5
             n = range(2,5)
             m = range(-8,6)
             for i in n:
@@ -609,14 +608,13 @@ class ORR_MKM:
                 if max(diffn) < 0.5:
                         break
         if self.site_type =='cavity_edge':
-            E_gas = np.array([-7.73, -13.25]) #OH and OOH
             x = metal('Pt')
-            BEs_cavity = x.get_BEs(GCN[0], uncertainty = False, correlations = False) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
-            BEs_edge = x.get_BEs(GCN[1], uncertainty = False, correlations = False) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
-            BEs_8_5 = x.get_BEs(8.5, uncertainty = False, correlations = False)
-            BEs_5_167 = x.get_BEs(5.167, uncertainty = False, correlations = False)
-            GCN_scaling_cavity =  (BEs_cavity + E_gas)/(BEs_8_5+E_gas)
-            GCN_scaling_edge =  (BEs_edge + E_gas)/(BEs_5_167+E_gas)
+            BEs_cavity = np.array(x.get_BEs(GCN[0], uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_edge = np.array(x.get_BEs(GCN[1], uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_8_5 = np.array(x.get_BEs(8.5, uncertainty = False, correlations = False))
+            BEs_5_167 = np.array(x.get_BEs(5.167, uncertainty = False, correlations = False))
+            GCN_scaling_cavity =  BEs_cavity - BEs_8_5
+            GCN_scaling_edge =  BEs_edge - BEs_5_167
             n = range(2,5)
             m = range(-7,6)
             for i in n:
@@ -635,24 +633,22 @@ class ORR_MKM:
     
     def get_rate(self,GCN,coverage):
         if self.site_type == 'terrace':
-            E_gas = np.array([-7.73, -13.25]) #OH and OOH
             x = metal('Pt')
-            BEs_zerocov = x.get_BEs(GCN, uncertainty = False, correlations = False) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
-            BEs_7_5 = x.get_BEs(7.5, uncertainty = False, correlations = False)
-            GCN_scaling =  (BEs_zerocov + E_gas)/(BEs_7_5+E_gas)
+            BEs_zerocov = np.array(x.get_BEs(GCN, uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_7_5 = np.array(x.get_BEs(7.5, uncertainty = False, correlations = False))
+            GCN_scaling =  BEs_zerocov - BEs_7_5
             sol = odeint(self.coverage_terrace, coverage
                     , np.linspace(0, 1, 10**6), args=(self.popt,GCN_scaling))
             rate = self.rate_terrace(sol[-1],self.popt,GCN_scaling)
             return(rate)
         if self.site_type == 'cavity_edge':
-            E_gas = np.array([-7.73, -13.25]) #OH and OOH
             x = metal('Pt')
-            BEs_cavity = x.get_BEs(GCN[0], uncertainty = False, correlations = False) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
-            BEs_edge = x.get_BEs(GCN[1], uncertainty = False, correlations = False) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
-            BEs_8_5 = x.get_BEs(8.5, uncertainty = False, correlations = False)
-            BEs_5_167 = x.get_BEs(5.167, uncertainty = False, correlations = False)
-            GCN_scaling_cavity =  (BEs_cavity + E_gas)/(BEs_8_5+E_gas)
-            GCN_scaling_edge =  (BEs_edge + E_gas)/(BEs_5_167+E_gas)
+            BEs_cavity = np.array(x.get_BEs(GCN[0], uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_edge = np.array(x.get_BEs(GCN[1], uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_8_5 = np.array(x.get_BEs(8.5, uncertainty = False, correlations = False))
+            BEs_5_167 = np.array(x.get_BEs(5.167, uncertainty = False, correlations = False))
+            GCN_scaling_cavity =  BEs_cavity - BEs_8_5
+            GCN_scaling_edge =  BEs_edge - BEs_5_167
             sol = odeint(self.coverage_cavity_edge, coverage
                     , np.linspace(0, 1, 10**6), args=(self.popt,self.popt_cavity_edge,GCN_scaling_cavity,GCN_scaling_edge))
             rate = self.rate_cavity_edge(sol[-1],self.popt,self.popt_cavity_edge,GCN_scaling_cavity,GCN_scaling_edge)
