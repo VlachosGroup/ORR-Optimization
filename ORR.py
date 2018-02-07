@@ -5,7 +5,7 @@ Computes the rate of the oxygen reduction reaction
 
 import numpy as np
 
-def ORR_rate(delEads_OH, delEads_OOH,explicit=False,coverage=False):
+def ORR_rate(delEads_OH, delEads_OOH,explicit=False):
     
     '''
     Compute ORR rate from OH and OOH binding energies
@@ -37,7 +37,6 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,coverage=False):
     E_solv = [-0.575, -0.480]           # solvation energy, eV
 
     #add implicit solvation energy
-    delEads_OHGCN = delEads_OH
     delEads_OH += E_solv[0]
     delEads_OOH += E_solv[1]
     
@@ -45,26 +44,9 @@ def ORR_rate(delEads_OH, delEads_OOH,explicit=False,coverage=False):
     
     #exchange implicit for explicit solvation effects
     if explicit == True:
-        EOHimpl2expl = -0.410203; EOOHimpl2expl = 0.179228
+        EOHimpl2expl = 0.03917; EOOHimpl2expl = 0.16027
         delEads_OH += EOHimpl2expl
         delEads_OOH += EOOHimpl2expl
-           
-    if coverage == True:
-         #add lateral interactions (coverage efects)
-        if delEads_OHGCN < -2.827: #low GCN/edge (less than 5.167)
-            dGdOH = 0.4253; dGdOOH = 0.5493
-        elif delEads_OHGCN < -2.3806: #GCN less than 7.5
-            dGdOH = 1.06227662*delEads_OHGCN + 3.4287025
-            dGdOOH = -0.67072303*delEads_OHGCN + -1.34705277
-        elif delEads_OHGCN < -2.1892: #GCN less than 8.5
-            dGdOH = -4.69961341*delEads_OHGCN + -10.2883066
-            dGdOOH = -0.67480557*delEads_OHGCN + -1.35677185
-        else: #high GCN/cavity (greater than 8.5)
-            dGdOH = 0; dGdOOH = 0.1205
-    else:
-        dGdOH = 0; dGdOOH = 0
-    delEads_OH += dGdOH
-    delEads_OOH += dGdOOH
     
     # Species free energies at T = 298K
     G_OH = E_g[0] + delEads_OH + ZPE[0] - TS[0]

@@ -21,11 +21,18 @@ class ORR_MKM:
         E6H2O = -365.04325 # removing H2O from cavity
         Esolv_H2O_explicit = E7H2O-E6H2O-E_H2Og #this is solvation energy of H2O interacting with a surface
         self.G_H2Osurf = E_H2Og + Esolv_H2O_explicit
-        self.Gfit_terrace()
+        self.Gfit()
         self.Gfit_cavity_edge()
 
-    def Gfit_terrace(self):
-        data_file = 'Surface_Energies.csv'
+    def Gfit(self):
+        data_file = ''
+        Go = 0
+        if self.site_type == 'terrace':
+            data_file = 'Surface_Energies.csv'
+            Go = -385.40342
+        if self.site_type=='edge' or self.site_type =='cavity_edge':
+            data_file = 'Surface_Energies_6_4.csv'
+            Go = -378.28072
         data_file = os.path.expanduser(data_file)
         CovDat = read_csv(data_file)
         Coverages = np.array([CovDat.OHcov,CovDat.OOHcov,CovDat.Ocov])
@@ -34,7 +41,6 @@ class ORR_MKM:
             OHcov, OOHcov, Ocov = Coverageinput
             Gval = GOHo*OHcov + GOOHo*OOHcov + GOo*Ocov + s*(tp*Ocov+OHcov)**u + x*(y*Ocov+OHcov)**z*OOHcov
             return Gval
-        Go = -385.40342
         Energies = CovDat.Energy.as_matrix() + WaterReplacement - Go
         lmin = 0
         lmax = 30
@@ -55,11 +61,15 @@ class ORR_MKM:
             dGval = GOOHo+GCN_scaling + x*(y*Ocov+OHcov)**z
             return dGval
         
-        def dGdO(Coverageinput,popt):
+        def dGdO(Coverageinput,popt,GCN_scaling):
             s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
-            Coverageinput = [i if i>0 else 0 for i in Coverageinput]
+            if self.site_type == 'cavity_edge': #dGval is an array of length 2 (for cavity and edge sites)
+                GOo = np.array([GOo,GOo])+np.array([-6.57278+6.46064,-5.12679+6.46064])
+                Coverageinput = [np.array([i if i>0 else 0 for i in Coverageinput[0]]),np.array([i if i>0 else 0 for i in Coverageinput[1]]),np.array([i if i>0 else 0 for i in Coverageinput[2]])]
+            else:
+                Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHcov, OOHcov, Ocov = Coverageinput
-            dGval = GOo + tp*u*s*(tp*Ocov+OHcov)**(u-1)+y*z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
+            dGval = GOo+GCN_scaling + tp*u*s*(tp*Ocov+OHcov)**(u-1)+y*z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
             return dGval
 
         self.dGdOH = dGdOH
@@ -128,7 +138,7 @@ class ORR_MKM:
         self.dGdOOHedge = dGdOOHedge
         self.dGdOOHcav = dGdOOHcav
     
-    def coverage_terrace(self,Theta,t,popt,GCN_scaling):
+    def coveragefunc(self,Theta,t,popt,GCN_scaling):
         kB = 8.617e-5                      # eV / K
         h = 4.135667662e-15;               # eV * s
         T = 298.15                         # K
@@ -146,7 +156,7 @@ class ORR_MKM:
         OHcov = Theta[0]; OOHcov = Theta[1]; Ocovfcc = Theta[2]; Ocovatop = Theta[3]
         #Calculating Coverage Dependent Adsorption Energies   
         dE_OH = self.dGdOH(np.array([OHcov,OOHcov,Ocovfcc]),popt,GCN_scaling[0])
-        dE_Ofcc = self.dGdO(np.array([OHcov,OOHcov,Ocovfcc]),popt)
+        dE_Ofcc = self.dGdO(np.array([OHcov,OOHcov,Ocovfcc]),popt,GCN_scaling[2])
         dE_OOH = self.dGdOOH(np.array([OHcov,OOHcov,Ocovfcc]),popt,GCN_scaling[1])
         # Surface Species free energies at T = 298K
         G_OH = dE_OH + ZPE[0] - TS[0] #G minus G of surface
@@ -224,7 +234,7 @@ class ORR_MKM:
         dydt = [dThetaOHdt,dThetaOOHdt,dThetaOfccdt,dThetaOatopdt]
         return dydt
     
-    def rate_terrace(self,Theta,popt,GCN_scaling):
+    def ratefunc(self,Theta,popt,GCN_scaling):
         kB = 8.617e-5                      # eV / K
         h = 4.135667662e-15;               # eV * s
         T = 298.15                         # K
@@ -242,7 +252,7 @@ class ORR_MKM:
         OHcov = Theta[0]; OOHcov = Theta[1]; Ocovfcc = Theta[2]; Ocovatop = Theta[3]
         #Calculating Coverage Dependent Adsorption Energies   
         dE_OH = self.dGdOH(np.array([OHcov,OOHcov,Ocovfcc]),popt,GCN_scaling[0])
-        dE_Ofcc = self.dGdO(np.array([OHcov,OOHcov,Ocovfcc]),popt)
+        dE_Ofcc = self.dGdO(np.array([OHcov,OOHcov,Ocovfcc]),popt,GCN_scaling[2])
         dE_OOH = self.dGdOOH(np.array([OHcov,OOHcov,Ocovfcc]),popt,GCN_scaling[1])
         # Surface Species free energies at T = 298K
         G_OH = dE_OH + ZPE[0] - TS[0] #G minus G of surface
@@ -331,13 +341,13 @@ class ORR_MKM:
         TS = [0, 0, 0]                         # entropy contribution to Gibbs energy at 298 K, eV
         #Getting Coverages
         OHedge = Theta[0]; OHcav = Theta[1]; OOHedge = Theta[2]; OOHcav = Theta[3]
-        Ocovfcc = Theta[4]; Ocovatop = Theta[5]
+        Ocovfccedge = Theta[4]; Ocovatopedge = Theta[5]; Ocovfcccav = Theta[6]; Ocovatopcav = Theta[7]
         #Calculating Coverage Dependent Adsorption Energies   
-        dE_OHedge = self.dGdOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[0])
-        dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[0])
-        dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[1])
-        dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[1])
-        dE_Ofcc = self.dGdO(np.array([(OHedge+OHcav),(OOHedge+OOHcav),(Ocovfcc+Ocovatop)]),popt_terrace)
+        dE_OHedge = self.dGdOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[0])
+        dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[0])
+        dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[1])
+        dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[1])
+        dE_Ofcc = self.dGdO(np.array([np.array([OHedge,OHcav]),np.array([OOHedge,OOHcav]),np.array([(Ocovfccedge+Ocovatopedge),(Ocovfcccav+Ocovatopcav)])]),popt_terrace,np.array([GCN_scaling_edge[2],GCN_scaling_cavity[2]]))
         # Species free energies at T = 298K
         G_OHedge = dE_OHedge + ZPE[0] - TS[0] #G minus G of surface
         G_OOHedge = dE_OOHedge + ZPE[1] - TS[1] # G minus G of surface
@@ -359,19 +369,20 @@ class ORR_MKM:
         G_H_e = 0.5*G_H2g - U*n
         G1edge = G_OOHedge - G_O2g - G_H_e
         G1cav = G_OOHcav - G_O2g - G_H_e
-        G2edge = G_Ofcc + G_H2Ol - G_OOHedge - G_H_e
-        G2cav = G_Ofcc + G_H2Ol - G_OOHcav - G_H_e
-        G2aedge = G_Oatop + G_H2Ol - G_OOHedge - G_H_e
-        G2acav = G_Oatop + G_H2Ol - G_OOHcav - G_H_e
-        G2bedge = G_Ofcc + G_OHedge - G_OOHedge
-        G2bcav = G_Ofcc + G_OHcav - G_OOHcav
-        G3edge = G_OHedge - G_Ofcc - G_H_e
-        G3cav = G_OHcav - G_Ofcc - G_H_e
-        G3aedge = G_OHedge - G_Oatop - G_H_e
-        G3acav = G_OHcav - G_Oatop - G_H_e
+        G2edge = G_Ofcc[0] + G_H2Ol - G_OOHedge - G_H_e
+        G2cav = G_Ofcc[1] + G_H2Ol - G_OOHcav - G_H_e
+        G2aedge = G_Oatop[0] + G_H2Ol - G_OOHedge - G_H_e
+        G2acav = G_Oatop[1] + G_H2Ol - G_OOHcav - G_H_e
+        G2bedge = G_Ofcc[0] + G_OHedge - G_OOHedge
+        G2bcav = G_Ofcc[1] + G_OHcav - G_OOHcav
+        G3edge = G_OHedge - G_Ofcc[0] - G_H_e
+        G3cav = G_OHcav - G_Ofcc[1] - G_H_e
+        G3aedge = G_OHedge - G_Oatop[0] - G_H_e
+        G3acav = G_OHcav - G_Oatop[1] - G_H_e
         G4edge = G_H2Ol - G_OHedge - G_H_e
         G4cav = G_H2Ol - G_OHcav - G_H_e
-        G_O2fcc = 2*G_Ofcc - G_O2g
+        G_O2edge = 2*G_Ofcc[0] - G_O2g
+        G_O2cav = 2*G_Ofcc[1] - G_O2g
         """Rate constants and activation energies"""
         Ea1 = 0.07 # O2 protonation barrier from Hyman 2006
         k1edge = kB*T/h*np.exp(-max(G1edge+Ea1,Ea1)/(kB*T))
@@ -409,50 +420,53 @@ class ORR_MKM:
         k4cav = kB*T/h*np.exp(-max(G4cav+Ea4,Ea4)/(kB*T))
         k_4cav = kB*T/h*np.exp(-max(-G4cav+Ea4,Ea4)/(kB*T))
         EaO2 = 0.65 #dissociation barrier for O2 from Yan 2017
-        kO2fcc = kB*T/h*np.exp(-max(G_O2fcc+EaO2,EaO2)/(kB*T))
-        k_O2fcc = kB*T/h*np.exp(-max(-G_O2fcc+EaO2,EaO2)/(kB*T))
+        kO2edge = kB*T/h*np.exp(-max(G_O2edge+EaO2,EaO2)/(kB*T))
+        k_O2edge = kB*T/h*np.exp(-max(-G_O2edge+EaO2,EaO2)/(kB*T))
+        kO2cav = kB*T/h*np.exp(-max(G_O2cav+EaO2,EaO2)/(kB*T))
+        k_O2cav = kB*T/h*np.exp(-max(-G_O2cav+EaO2,EaO2)/(kB*T))
         """rates"""
-        r1edge=k1edge*(1-OHedge-OOHedge-Ocovatop)*pO2*pH2**0.5
+        r1edge=k1edge*(1-OHedge-OOHedge-Ocovatopedge)*pO2*pH2**0.5
         r_1edge = k_1edge*OOHedge
-        r1cav=k1cav*(1-OHcav-OOHcav-Ocovatop)*pO2*pH2**0.5
+        r1cav=k1cav*(1-OHcav-OOHcav-Ocovatopcav)*pO2*pH2**0.5
         r_1cav = k_1cav*OOHcav
         r2edge = k2edge*OOHedge*pH2**0.5
-        r_2edge = k_2edge*Ocovfcc*pH2O
+        r_2edge = k_2edge*Ocovfccedge*pH2O
         r2cav = k2cav*OOHcav*pH2**0.5
-        r_2cav = k_2cav*Ocovfcc*pH2O
+        r_2cav = k_2cav*Ocovfcccav*pH2O
         r2aedge = k2aedge*OOHedge*pH2**0.5
-        r_2aedge = k_2aedge*Ocovatop*pH2O
+        r_2aedge = k_2aedge*Ocovatopedge*pH2O
         r2acav = k2acav*OOHcav*pH2**0.5
-        r_2acav = k_2acav*Ocovatop*pH2O
+        r_2acav = k_2acav*Ocovatopcav*pH2O
         r2bedge = k2bedge*OOHedge
-        r_2bedge = k_2bedge*Ocovfcc*OHedge
+        r_2bedge = k_2bedge*Ocovfccedge*OHedge
         r2bcav = k2bcav*OOHcav
-        r_2bcav = k_2bcav*Ocovfcc*OHcav
-        r3edge = k3edge*Ocovfcc*pH2**0.5
+        r_2bcav = k_2bcav*Ocovfcccav*OHcav
+        r3edge = k3edge*Ocovfccedge*pH2**0.5
         r_3edge = k_3edge*OHedge
-        r3cav = k3cav*Ocovfcc*pH2**0.5
+        r3cav = k3cav*Ocovfcccav*pH2**0.5
         r_3cav = k_3cav*OHcav
-        r3aedge = k3aedge*Ocovatop*pH2**0.5
+        r3aedge = k3aedge*Ocovatopedge*pH2**0.5
         r_3aedge = k_3aedge*OHedge
-        r3acav = k3acav*Ocovatop*pH2**0.5
+        r3acav = k3acav*Ocovatopcav*pH2**0.5
         r_3acav = k_3acav*OHcav
         r4edge = k4edge*OHedge*pH2**0.5
-        r_4edge = k_4edge*(1-OHedge-OOHedge-Ocovatop)*pH2O
+        r_4edge = k_4edge*(1-OHedge-OOHedge-Ocovatopedge)*pH2O
         r4cav = k4cav*OHcav*pH2**0.5
-        r_4cav = k_4cav*(1-OHcav-OOHcav-Ocovatop)*pH2O
-        rOfcc = 2*(kO2fcc*pO2*2*(1-Ocovfcc)**2)
-        r_Ofcc = 2*(k_O2fcc*2*(Ocovfcc)**2)
+        r_4cav = k_4cav*(1-OHcav-OOHcav-Ocovatopcav)*pH2O
+        rOedge = 2*(kO2edge*pO2*2*(1-Ocovfccedge)**2)
+        r_Oedge = 2*(k_O2edge*2*(Ocovfccedge)**2)
+        rOcav = 2*(kO2cav*pO2*2*(1-Ocovfcccav)**2)
+        r_Ocav = 2*(k_O2cav*2*(Ocovfcccav)**2)
         """changes in coverage"""
         dThetaOOHedgedt = r1edge - r_1edge - r2edge + r_2edge - r2aedge + r_2aedge - r2bedge + r_2bedge
-        dThetaOHedgedt = r2bedge - r_2bedge + r3edge - r_3edge + r3aedge - r_3aedge - r4edge + r_4edge #+ r3b - r_3b
+        dThetaOHedgedt = r2bedge - r_2bedge + r3edge - r_3edge + r3aedge - r_3aedge - r4edge + r_4edge
         dThetaOOHcavdt = r1cav - r_1cav - r2cav + r_2cav - r2acav + r_2acav - r2bcav + r_2bcav
-        dThetaOHcavdt = r2bcav - r_2bcav + r3cav - r_3cav + r3acav - r_3acav - r4cav + r_4cav #+ r3b - r_3b
-        r2 = r2edge+r2cav; r_2 = r_2edge+r_2cav; r2a = r2aedge+r2acav; r_2a = r_2aedge+r_2acav
-        r2b = r2bedge+r2bcav; r_2b = r_2bedge+r_2bcav; r3=r3edge+r3cav; r_3=r_3edge+r_3cav; 
-        r3a = r3aedge+r3acav; r_3a=r_3aedge+r_3acav
-        dThetaOfccdt = rOfcc - r_Ofcc + r2 - r_2 + r2b - r_2b - r3 + r_3 
-        dThetaOatopdt = r2a - r_2a - r3a + r_3a
-        dydt = [dThetaOHedgedt,dThetaOHcavdt,dThetaOOHedgedt,dThetaOOHcavdt,dThetaOfccdt,dThetaOatopdt]
+        dThetaOHcavdt = r2bcav - r_2bcav + r3cav - r_3cav + r3acav - r_3acav - r4cav + r_4cav
+        dThetaOfccedgedt = rOedge - r_Oedge + r2edge - r_2edge + r2bedge - r_2bedge - r3edge + r_3edge 
+        dThetaOatopedgedt = r2aedge - r_2aedge - r3aedge + r_3aedge
+        dThetaOfcccavdt = rOcav - r_Ocav + r2cav - r_2cav + r2bcav - r_2bcav - r3cav + r_3cav 
+        dThetaOatopcavdt = r2acav - r_2acav - r3acav + r_3acav
+        dydt = [dThetaOHedgedt,dThetaOHcavdt,dThetaOOHedgedt,dThetaOOHcavdt,dThetaOfccedgedt,dThetaOatopedgedt,dThetaOfcccavdt,dThetaOatopcavdt]
         return dydt
     
     def rate_cavity_edge(self,Theta,popt_terrace,popt_cavity_edge,GCN_scaling_cavity,GCN_scaling_edge):
@@ -471,13 +485,13 @@ class ORR_MKM:
         TS = [0, 0, 0]                         # entropy contribution to Gibbs energy at 298 K, eV
         #Getting Coverages
         OHedge = Theta[0]; OHcav = Theta[1]; OOHedge = Theta[2]; OOHcav = Theta[3]
-        Ocovfcc = Theta[4]; Ocovatop = Theta[5]
+        Ocovfccedge = Theta[4]; Ocovatopedge = Theta[5]; Ocovfcccav = Theta[6]; Ocovatopcav = Theta[7]
         #Calculating Coverage Dependent Adsorption Energies   
-        dE_OHedge = self.dGdOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[0])
-        dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[0])
-        dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[1])
-        dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcc+Ocovatop)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[1])
-        dE_Ofcc = self.dGdO(np.array([(OHedge+OHcav),(OOHedge+OOHcav),(Ocovfcc+Ocovatop)]),popt_terrace)
+        dE_OHedge = self.dGdOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[0])
+        dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[0])
+        dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge,popt_terrace,GCN_scaling_edge[1])
+        dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge,popt_terrace,GCN_scaling_cavity[1])
+        dE_Ofcc = self.dGdO(np.array([np.array([OHedge,OHcav]),np.array([OOHedge,OOHcav]),np.array([(Ocovfccedge+Ocovatopedge),(Ocovfcccav+Ocovatopcav)])]),popt_terrace,np.array([GCN_scaling_edge[2],GCN_scaling_cavity[2]]))
         # Species free energies at T = 298K
         G_OHedge = dE_OHedge + ZPE[0] - TS[0] #G minus G of surface
         G_OOHedge = dE_OOHedge + ZPE[1] - TS[1] # G minus G of surface
@@ -499,19 +513,20 @@ class ORR_MKM:
         G_H_e = 0.5*G_H2g - U*n
         G1edge = G_OOHedge - G_O2g - G_H_e
         G1cav = G_OOHcav - G_O2g - G_H_e
-        G2edge = G_Ofcc + G_H2Ol - G_OOHedge - G_H_e
-        G2cav = G_Ofcc + G_H2Ol - G_OOHcav - G_H_e
-        G2aedge = G_Oatop + G_H2Ol - G_OOHedge - G_H_e
-        G2acav = G_Oatop + G_H2Ol - G_OOHcav - G_H_e
-        G2bedge = G_Ofcc + G_OHedge - G_OOHedge
-        G2bcav = G_Ofcc + G_OHcav - G_OOHcav
-        G3edge = G_OHedge - G_Ofcc - G_H_e
-        G3cav = G_OHcav - G_Ofcc - G_H_e
-        G3aedge = G_OHedge - G_Oatop - G_H_e
-        G3acav = G_OHcav - G_Oatop - G_H_e
+        G2edge = G_Ofcc[0] + G_H2Ol - G_OOHedge - G_H_e
+        G2cav = G_Ofcc[1] + G_H2Ol - G_OOHcav - G_H_e
+        G2aedge = G_Oatop[0] + G_H2Ol - G_OOHedge - G_H_e
+        G2acav = G_Oatop[1] + G_H2Ol - G_OOHcav - G_H_e
+        G2bedge = G_Ofcc[0] + G_OHedge - G_OOHedge
+        G2bcav = G_Ofcc[1] + G_OHcav - G_OOHcav
+        G3edge = G_OHedge - G_Ofcc[0] - G_H_e
+        G3cav = G_OHcav - G_Ofcc[1] - G_H_e
+        G3aedge = G_OHedge - G_Oatop[0] - G_H_e
+        G3acav = G_OHcav - G_Oatop[1] - G_H_e
         G4edge = G_H2Ol - G_OHedge - G_H_e
         G4cav = G_H2Ol - G_OHcav - G_H_e
-        G_O2fcc = 2*G_Ofcc - G_O2g
+        G_O2edge = 2*G_Ofcc[0] - G_O2g
+        G_O2cav = 2*G_Ofcc[1] - G_O2g
         """Rate constants and activation energies"""
         Ea1 = 0.07 # O2 protonation barrier from Hyman 2006
         k1edge = kB*T/h*np.exp(-max(G1edge+Ea1,Ea1)/(kB*T))
@@ -549,39 +564,43 @@ class ORR_MKM:
         k4cav = kB*T/h*np.exp(-max(G4cav+Ea4,Ea4)/(kB*T))
         k_4cav = kB*T/h*np.exp(-max(-G4cav+Ea4,Ea4)/(kB*T))
         EaO2 = 0.65 #dissociation barrier for O2 from Yan 2017
-        kO2fcc = kB*T/h*np.exp(-max(G_O2fcc+EaO2,EaO2)/(kB*T))
-        k_O2fcc = kB*T/h*np.exp(-max(-G_O2fcc+EaO2,EaO2)/(kB*T))
+        kO2edge = kB*T/h*np.exp(-max(G_O2edge+EaO2,EaO2)/(kB*T))
+        k_O2edge = kB*T/h*np.exp(-max(-G_O2edge+EaO2,EaO2)/(kB*T))
+        kO2cav = kB*T/h*np.exp(-max(G_O2cav+EaO2,EaO2)/(kB*T))
+        k_O2cav = kB*T/h*np.exp(-max(-G_O2cav+EaO2,EaO2)/(kB*T))
         """rates"""
-        r1edge=k1edge*(1-OHedge-OOHedge-Ocovatop)*pO2*pH2**0.5
+        r1edge=k1edge*(1-OHedge-OOHedge-Ocovatopedge)*pO2*pH2**0.5
         r_1edge = k_1edge*OOHedge
-        r1cav=k1cav*(1-OHcav-OOHcav-Ocovatop)*pO2*pH2**0.5
+        r1cav=k1cav*(1-OHcav-OOHcav-Ocovatopcav)*pO2*pH2**0.5
         r_1cav = k_1cav*OOHcav
         r2edge = k2edge*OOHedge*pH2**0.5
-        r_2edge = k_2edge*Ocovfcc*pH2O
+        r_2edge = k_2edge*Ocovfccedge*pH2O
         r2cav = k2cav*OOHcav*pH2**0.5
-        r_2cav = k_2cav*Ocovfcc*pH2O
+        r_2cav = k_2cav*Ocovfcccav*pH2O
         r2aedge = k2aedge*OOHedge*pH2**0.5
-        r_2aedge = k_2aedge*Ocovatop*pH2O
+        r_2aedge = k_2aedge*Ocovatopedge*pH2O
         r2acav = k2acav*OOHcav*pH2**0.5
-        r_2acav = k_2acav*Ocovatop*pH2O
+        r_2acav = k_2acav*Ocovatopcav*pH2O
         r2bedge = k2bedge*OOHedge
-        r_2bedge = k_2bedge*Ocovfcc*OHedge
+        r_2bedge = k_2bedge*Ocovfccedge*OHedge
         r2bcav = k2bcav*OOHcav
-        r_2bcav = k_2bcav*Ocovfcc*OHcav
-        r3edge = k3edge*Ocovfcc*pH2**0.5
+        r_2bcav = k_2bcav*Ocovfcccav*OHcav
+        r3edge = k3edge*Ocovfccedge*pH2**0.5
         r_3edge = k_3edge*OHedge
-        r3cav = k3cav*Ocovfcc*pH2**0.5
+        r3cav = k3cav*Ocovfcccav*pH2**0.5
         r_3cav = k_3cav*OHcav
-        r3aedge = k3aedge*Ocovatop*pH2**0.5
+        r3aedge = k3aedge*Ocovatopedge*pH2**0.5
         r_3aedge = k_3aedge*OHedge
-        r3acav = k3acav*Ocovatop*pH2**0.5
+        r3acav = k3acav*Ocovatopcav*pH2**0.5
         r_3acav = k_3acav*OHcav
         r4edge = k4edge*OHedge*pH2**0.5
-        r_4edge = k_4edge*(1-OHedge-OOHedge-Ocovatop)*pH2O
+        r_4edge = k_4edge*(1-OHedge-OOHedge-Ocovatopedge)*pH2O
         r4cav = k4cav*OHcav*pH2**0.5
-        r_4cav = k_4cav*(1-OHcav-OOHcav-Ocovatop)*pH2O
-        rOfcc = 2*(kO2fcc*pO2*2*(1-Ocovfcc)**2)
-        r_Ofcc = 2*(k_O2fcc*2*(Ocovfcc)**2)
+        r_4cav = k_4cav*(1-OHcav-OOHcav-Ocovatopcav)*pH2O
+        rOedge = 2*(kO2edge*pO2*2*(1-Ocovfccedge)**2)
+        r_Oedge = 2*(k_O2edge*2*(Ocovfccedge)**2)
+        rOcav = 2*(kO2cav*pO2*2*(1-Ocovfcccav)**2)
+        r_Ocav = 2*(k_O2cav*2*(Ocovfcccav)**2)
         rate_electron_edge = r1edge-r_1edge+r2edge-r_2edge+r2aedge-r_2aedge
         +r3edge-r_3edge+r3aedge-r_3aedge+r4edge-r_4edge
         rate_electron_cavity = r1cav-r_1cav+r2cav-r_2cav+r2acav-r_2acav
@@ -594,12 +613,32 @@ class ORR_MKM:
             BEs_zerocov = np.array(x.get_BEs(GCN, uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
             BEs_7_5 = np.array(x.get_BEs(7.5, uncertainty = False, correlations = False))
             GCN_scaling =  BEs_zerocov - BEs_7_5
+            GCN_scaling = np.append(GCN_scaling,0.0873*(GCN-7.5))
             n = range(2,5)
             m = range(-8,6)
             for i in n:
                 for ii in m:
                     t = np.linspace(0, 10**ii, 10**i)
-                    sol = odeint(self.coverage_terrace, [6.14313809e-06, 3.56958665e-12, 1.93164910e-01, 7.73636912e-12]
+                    sol = odeint(self.coveragefunc, [6.14313809e-06, 3.56958665e-12, 1.93164910e-01, 7.73636912e-12]
+                    , t, args=(self.popt,GCN_scaling))
+                    diffm =  np.abs(sol[-4:-1].ravel() - sol[-3:].ravel())
+                    if max(diffm) < 10**-12:
+                        break
+                diffn = np.abs(sol[1:].ravel()-sol[0:-1].ravel())
+                if max(diffn) < 0.5:
+                        break
+        if self.site_type == 'edge':
+            x = metal('Pt')
+            BEs_zerocov = np.array(x.get_BEs(GCN, uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_6_417 = np.array(x.get_BEs(6.417, uncertainty = False, correlations = False))
+            GCN_scaling =  BEs_zerocov - BEs_6_417
+            GCN_scaling = np.append(GCN_scaling,0.0873*(GCN-6.417))
+            n = range(2,5)
+            m = range(-8,6)
+            for i in n:
+                for ii in m:
+                    t = np.linspace(0, 10**ii, 10**i)
+                    sol = odeint(self.coveragefunc, [6.14313809e-06, 3.56958665e-12, 1.93164910e-01, 7.73636912e-12]
                     , t, args=(self.popt,GCN_scaling))
                     diffm =  np.abs(sol[-4:-1].ravel() - sol[-3:].ravel())
                     if max(diffm) < 10**-12:
@@ -614,14 +653,16 @@ class ORR_MKM:
             BEs_8_5 = np.array(x.get_BEs(8.5, uncertainty = False, correlations = False))
             BEs_5_167 = np.array(x.get_BEs(5.167, uncertainty = False, correlations = False))
             GCN_scaling_cavity =  BEs_cavity - BEs_8_5
+            GCN_scaling_cavity = np.append(GCN_scaling_cavity,0.0873*(GCN[0]-8.5))
             GCN_scaling_edge =  BEs_edge - BEs_5_167
+            GCN_scaling_edge = np.append(GCN_scaling_edge,0.0873*(GCN[1]-5.167))
             n = range(2,5)
             m = range(-7,6)
             for i in n:
                 for ii in m:
                     t = np.linspace(0, 10**ii, 10**i)
-                    sol = odeint(self.coverage_cavity_edge, [3.92747564e-01, 4.69466971e-04,   7.72294626e-07,
-          8.80151673e-13,   3.96037416e-04,   1.37359967e-11]
+                    sol = odeint(self.coverage_cavity_edge, [3.92747564e-01, 4.69466971e-04, 7.72294626e-07,
+          8.80151673e-13, 3.96037416e-04, 1.37359967e-11, 3.96037416e-04, 1.37359967e-11]
                     , t, args=(self.popt,self.popt_cavity_edge,GCN_scaling_cavity,GCN_scaling_edge))
                     diffm =  np.abs(sol[-4:-1].ravel() - sol[-3:].ravel())
                     if max(diffm) < 10**-12:
@@ -637,9 +678,20 @@ class ORR_MKM:
             BEs_zerocov = np.array(x.get_BEs(GCN, uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
             BEs_7_5 = np.array(x.get_BEs(7.5, uncertainty = False, correlations = False))
             GCN_scaling =  BEs_zerocov - BEs_7_5
-            sol = odeint(self.coverage_terrace, coverage
+            GCN_scaling = np.append(GCN_scaling,0.0873*(GCN-7.5))
+            sol = odeint(self.coveragefunc, coverage
                     , np.linspace(0, 1, 10**6), args=(self.popt,GCN_scaling))
-            rate = self.rate_terrace(sol[-1],self.popt,GCN_scaling)
+            rate = self.ratefunc(sol[-1],self.popt,GCN_scaling)
+            return(rate)
+        if self.site_type == 'edge':
+            x = metal('Pt')
+            BEs_zerocov = np.array(x.get_BEs(GCN, uncertainty = False, correlations = False)) #binding energies at 0 coverage for OH and OOH, respecitively, without solvation effects
+            BEs_6_417 = np.array(x.get_BEs(6.417, uncertainty = False, correlations = False))
+            GCN_scaling =  BEs_zerocov - BEs_6_417
+            GCN_scaling = np.append(GCN_scaling,0.0873*(GCN-6.417))
+            sol = odeint(self.coveragefunc, coverage
+                    , np.linspace(0, 1, 10**6), args=(self.popt,GCN_scaling))
+            rate = self.ratefunc(sol[-1],self.popt,GCN_scaling)
             return(rate)
         if self.site_type == 'cavity_edge':
             x = metal('Pt')
@@ -648,7 +700,9 @@ class ORR_MKM:
             BEs_8_5 = np.array(x.get_BEs(8.5, uncertainty = False, correlations = False))
             BEs_5_167 = np.array(x.get_BEs(5.167, uncertainty = False, correlations = False))
             GCN_scaling_cavity =  BEs_cavity - BEs_8_5
+            GCN_scaling_cavity = np.append(GCN_scaling_cavity,0.0873*(GCN[0]-8.5))
             GCN_scaling_edge =  BEs_edge - BEs_5_167
+            GCN_scaling_edge = np.append(GCN_scaling_edge,0.0873*(GCN[1]-5.167))
             sol = odeint(self.coverage_cavity_edge, coverage
                     , np.linspace(0, 1, 10**6), args=(self.popt,self.popt_cavity_edge,GCN_scaling_cavity,GCN_scaling_edge))
             rate = self.rate_cavity_edge(sol[-1],self.popt,self.popt_cavity_edge,GCN_scaling_cavity,GCN_scaling_edge)
