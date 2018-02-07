@@ -65,25 +65,29 @@ for GCN in GCN_terrace:
     rate_cedge.append(rate[1])
 coverage_cedge = np.array(coverage_cedge)
 
+"""terrace coverage"""
 plt.figure(0)
 plt.plot(GCN_terrace,coverage_terrace)
 plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
 
+"""GCN 6.4 edge coverage"""
 plt.figure(1)
 plt.plot(GCN_terrace,coverage_edge)
 plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
 
+"""GCN 5.1 edge coverage"""
 plt.figure(2)
 plt.plot(GCN_terrace,coverage_cedge[:,0],GCN_terrace,coverage_cedge[:,2],GCN_terrace,coverage_cedge[:,4],GCN_terrace,coverage_cedge[:,5])
 plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
 
-plt.figure(2)
+"""GCN 8.5 cavity coverage"""
+plt.figure(3)
 plt.plot(GCN_terrace,coverage_cavity[:,1],GCN_terrace,coverage_cavity[:,3],GCN_terrace,coverage_cavity[:,6],GCN_terrace,coverage_cavity[:,7])
 plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
@@ -119,10 +123,10 @@ print np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
 #raise NameError('stop')
 
 '''
-Plot volcano
+Plot volcano for different edges, cavity and terrace based Hamiltonians
 '''
 
-plt.figure(3)
+plt.figure(4)
 plt.plot(GCN_terrace,np.log(rate_terrace),GCN_terrace,np.log(rate_edge),GCN_terrace,np.log(rate_cedge),GCN_terrace,np.log(rate_cavity))
 plt.legend(['Terrace (GCN=7.5)','Edge (GCN=6.4)','Edge (GCN = 5.1)','Cavity (GCN = 8.5)'],loc=4,frameon=False)
 plt.ylabel('log(rate) log[mA/atom]')
