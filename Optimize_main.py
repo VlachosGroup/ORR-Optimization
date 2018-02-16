@@ -13,9 +13,9 @@ from sim_anneal import *
 import matplotlib.pyplot as plt
 import matplotlib as mat
 
-data_fldr = '.'
+data_fldr = '/home/vlachos/mpnunez/ORR_data/Josh_MKM/other'
 #data_fldr = os.path.expanduser(data_fldr)
-MOO_weight = 1
+MOO_weight = 1.0
 
 '''
 Build catalyst structure
