@@ -11,6 +11,10 @@ sys.path.append('/home/vlachos/mpnunez/Github/ORR-Optimization')
 import os
 import numpy as np
 import random
+
+import sys
+this_folder = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(this_folder,'..','structure')) 
 from orr_cat import orr_cat
 from sim_anneal import *
 

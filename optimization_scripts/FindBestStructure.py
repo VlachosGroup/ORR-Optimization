@@ -5,10 +5,10 @@ Stage 1: Maximize current density and minimize surface energy simultaneously
 Stage 2: Minimize surface energy by moving atoms to adjacent locations at constant loading
 '''
 
-import sys
-sys.path.append('/home/vlachos/mpnunez/Github/ORR-Optimization/structure')
-
 import os
+import sys
+this_folder = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(this_folder,'..','structure')) 
 import numpy as np
 import random
 from orr_cat import orr_cat

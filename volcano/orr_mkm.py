@@ -10,6 +10,10 @@ from pandas import read_csv
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.integrate import odeint
+
+import sys
+this_folder = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(this_folder,'..','structure')) 
 from metal import metal
 
 

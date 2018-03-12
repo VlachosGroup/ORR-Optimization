@@ -19,27 +19,6 @@ import matplotlib as mat
 metal_name = 'Pt'
 x = metal(metal_name)
 
-
-'''
-Plot PDF of GCN relation errors
-'''
-
-n_mesh = 100
-BE_OH_err_vec = np.linspace(-0.3,0.3,n_mesh)
-BE_OOH_err_vec = np.linspace(-0.3,0.3,n_mesh)
-
-BE_OH_err_mesh, BE_OOH_err_mesh = np.meshgrid(BE_OH_err_vec, 
-    BE_OOH_err_vec, sparse=False, indexing='xy')
-rel_prob = np.zeros(BE_OH_err_mesh.shape)
-for i in range(n_mesh):
-    for j in range(n_mesh):
-        pcas = np.matmul(np.array([BE_OH_err_mesh[i,j], BE_OOH_err_mesh[i,j]]), x.pca_inv )
-        rel_prob[i,j] = norm.pdf(pcas[0] / x.sigma_pca_1 ) * norm.pdf(pcas[1] / x.sigma_pca_2 )
-
-    
-
-
-
 n_GCNs = 100
 
 if metal_name == 'Pt':
@@ -59,7 +38,7 @@ for i in xrange(n_GCNs):
     
     # Data for deterministic volcano
     BEs = x.get_BEs(GCN_vec[i], uncertainty = False)
-    rate = ORR_rate(BEs[0], BEs[1],explicit=False,coverage=False)
+    rate = ORR_rate(BEs[0], BEs[1],explicit=False)
     det_vol[i] = rate
     
     n_MC_samples = 1000
@@ -70,12 +49,12 @@ for i in xrange(n_GCNs):
 
         # Unocorrelated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = False)
-        rate = ORR_rate(BEs[0], BEs[1],explicit=False,coverage=False)
+        rate = ORR_rate(BEs[0], BEs[1],explicit=False)
         data_uncorr[j] = rate
     
         # Correlated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = True)
-        rate = ORR_rate(BEs[0], BEs[1],explicit=False,coverage=False)
+        rate = ORR_rate(BEs[0], BEs[1],explicit=False)
         data_corr[j] = rate
     
     data_uncorr = np.sort(data_uncorr)
@@ -104,5 +83,5 @@ plt.ylabel('log(rate)',size=20)
 plt.yscale('log')
 plt.legend(loc=4, prop={'size':20}, frameon=False)
 plt.tight_layout()
-plt.savefig(metal_name + '_volcano.png', format='png', dpi=600)
+plt.savefig(metal_name + '_UQ_volcano.png', format='png', dpi=600)
 plt.close()
