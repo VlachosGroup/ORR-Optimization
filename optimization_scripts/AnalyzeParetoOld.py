@@ -1,12 +1,9 @@
 '''
-Main script for optimizing ORR catalyst structure
-Two stage optimization
-Stage 1: Maximize current density and minimize surface energy simultaneously
-Stage 2: Minimize surface energy by moving atoms to adjacent locations at constant loading
+Reads Pareto optimizations produced by the old Matlab code
 '''
 
 import sys
-sys.path.append('/home/vlachos/mpnunez/Github/ORR-Optimization')
+sys.path.append('/home/vlachos/mpnunez/Github/ORR-Optimization/structure')
 
 import os
 import numpy as np

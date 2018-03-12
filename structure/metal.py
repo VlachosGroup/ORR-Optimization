@@ -48,7 +48,7 @@ class metal:
         binding energies respectively, referenced to OH(g) and OOH(g)
         '''
         dir = os.path.dirname(__file__)
-        np_fname = os.path.join(dir, np_fname)
+        np_fname = os.path.join(dir, '../volcano', np_fname)
         BEs = np.load(np_fname)
     
         # Regress OH BE vs. GCN

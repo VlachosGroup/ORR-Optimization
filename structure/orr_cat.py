@@ -22,7 +22,7 @@ class orr_cat(dynamic_cat):
     Oxygen reduction reaction catalyst structure with defects
     '''
     
-    def __init__(self, met_name = 'Pt', facet = '111', dim1 = 12, dim2 = 12):
+    def __init__(self, met_name = 'Pt', facet = '111', dim1 = 12, dim2 = 12, volcano = 'JL'):
         
         dynamic_cat.__init__(self, met_name = met_name, facet = facet, dim1 = dim1, dim2 = dim1, fixed_layers = 3, variable_layers = 1)       # Call parent class constructor
         
@@ -42,9 +42,15 @@ class orr_cat(dynamic_cat):
         
         # Compute normalization factor from volcano plot
         self.volcano_data = np.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'all_volcanos.npy'))        # maximum is edge sites at unrealistically high GCN
-        #self.i_max = np.max(self.volcano_data[:,1::])  
-        #self.i_max = np.max(self.volcano_data[:,5])     # Calle-Vallejo only
-        self.i_max = np.max(self.volcano_data[:,3])     # Others
+
+        self.volcano = volcano
+        if volcano == 'JL':
+            self.i_max = np.max(self.volcano_data[:,3])     # Others
+            #self.i_max = np.max(self.volcano_data[:,1::])
+        elif volcano == 'CV':
+            self.i_max = np.max(self.volcano_data[:,5])     # Calle-Vallejo only
+        else:
+            raise NameError('Unrecognized volcano')
         
         '''
         Build template graph
@@ -142,32 +148,36 @@ class orr_cat(dynamic_cat):
                 if self.defected_graph.get_coordination_number(site_ind) <= self.active_CN:
                     gcn = self.defected_graph.get_generalized_coordination_number(site_ind)
                     
-                    if i < self.atoms_per_layer:                                      # bottom layer
-                        if gcn > 7.9:                                                   # cavity, not sure of the appropritate cutoff
-                            site_type_rates = self.volcano_data[:,4]
-                            site_categ_list[site_ind-2*self.atoms_per_layer] = 'cavity'                          
-                        else:                                                           # terrace
-                            site_type_rates = self.volcano_data[:,1]
-                            site_categ_list[site_ind-2*self.atoms_per_layer] = 'bot terrace'
-                    else:                                                               # top layer
-                        if gcn > 6.0:  # terrace
-                            site_type_rates = self.volcano_data[:,1]
-                            site_categ_list[site_ind-2*self.atoms_per_layer] = 'top terrace'
-                        else:                                                           # edge
-                            there_is_a_nearby_cavity = False
-                            possible_cavity_sites = self.edge_cavity_dict[site_ind]
-                            for cav_site in possible_cavity_sites:
-                                if site_categ_list[cav_site-2*self.atoms_per_layer] == 'cavity':
-                                    there_is_a_nearby_cavity = True
-                            
-                            if there_is_a_nearby_cavity:
-                                site_type_rates = self.volcano_data[:,3]    # cavity_edge
-                                site_categ_list[site_ind-2*self.atoms_per_layer] = 'cavity edge'
-                            else:
-                                site_type_rates = self.volcano_data[:,2]    # edge with no cavity, terrace-like
-                                site_categ_list[site_ind-2*self.atoms_per_layer] = 'edge'
+                    if self.volcano == 'JL':
+                        if i < self.atoms_per_layer:                                      # bottom layer
+                            if gcn > 7.9:                                                   # cavity, not sure of the appropritate cutoff
+                                site_type_rates = self.volcano_data[:,4]
+                                site_categ_list[site_ind-2*self.atoms_per_layer] = 'cavity'                          
+                            else:                                                           # terrace
+                                site_type_rates = self.volcano_data[:,1]
+                                site_categ_list[site_ind-2*self.atoms_per_layer] = 'bot terrace'
+                        else:                                                               # top layer
+                            if gcn > 6.0:  # terrace
+                                site_type_rates = self.volcano_data[:,1]
+                                site_categ_list[site_ind-2*self.atoms_per_layer] = 'top terrace'
+                            else:                                                           # edge
+                                there_is_a_nearby_cavity = False
+                                possible_cavity_sites = self.edge_cavity_dict[site_ind]
+                                for cav_site in possible_cavity_sites:
+                                    if site_categ_list[cav_site-2*self.atoms_per_layer] == 'cavity':
+                                        there_is_a_nearby_cavity = True
+                                
+                                if there_is_a_nearby_cavity:
+                                    site_type_rates = self.volcano_data[:,3]    # cavity_edge
+                                    site_categ_list[site_ind-2*self.atoms_per_layer] = 'cavity edge'
+                                else:
+                                    site_type_rates = self.volcano_data[:,2]    # edge with no cavity, terrace-like
+                                    site_categ_list[site_ind-2*self.atoms_per_layer] = 'edge'
                     
-                    #site_type_rates = self.volcano_data[:,5]
+                    elif self.volcano == 'CV':
+                        site_type_rates = self.volcano_data[:,5]
+                    else:
+                        raise NameError('Volcano not set')
                     
                     # interpolate data to get the rate
                     curr_list[i] = np.exp( np.interp( gcn, self.volcano_data[:,0], np.log(site_type_rates) ) )

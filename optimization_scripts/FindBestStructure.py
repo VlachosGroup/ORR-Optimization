@@ -6,7 +6,7 @@ Stage 2: Minimize surface energy by moving atoms to adjacent locations at consta
 '''
 
 import sys
-sys.path.append('/home/vlachos/mpnunez/Github/ORR-Optimization')
+sys.path.append('/home/vlachos/mpnunez/Github/ORR-Optimization/structure')
 
 import os
 import numpy as np
