@@ -33,7 +33,8 @@ class metal:
             
             self.E_coh = 2.3645 				 
             self.lc_PBE = 4.155657928				
-            self.load_DFT_data('Au_BEs.npy')
+            #self.load_DFT_data('Au_BEs.npy')
+            self.load_DFT_data('Au_Nature_BEs.npy')
             
         else:
             
@@ -48,7 +49,7 @@ class metal:
         binding energies respectively, referenced to OH(g) and OOH(g)
         '''
         dir = os.path.dirname(__file__)
-        np_fname = os.path.join(dir, '../volcano', np_fname)
+        np_fname = os.path.join(dir, np_fname)
         BEs = np.load(np_fname)
     
         # Regress OH BE vs. GCN

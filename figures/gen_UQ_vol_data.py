@@ -15,22 +15,25 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 import matplotlib as mat
 
+from savitzky_golay import *
+
 #for metal_name in ['Pt','Au']:
-metal_name = 'Pt'
+metal_name = 'Au'
 x = metal(metal_name)
 
 n_GCNs = 100
 
 if metal_name == 'Pt':
-    GCN_vec = np.linspace(1,10,n_GCNs)
+    GCN_vec = np.linspace(6,10,n_GCNs)
 elif metal_name == 'Au':
     GCN_vec = np.linspace(2,8,n_GCNs)
 
 det_vol = np.zeros(n_GCNs)
 UQ_uncorr_vol = np.zeros(n_GCNs)
 UQ_corr_vol = np.zeros(n_GCNs)
-UQ_corr_vol_upper = np.zeros(n_GCNs)
-UQ_corr_vol_lower = np.zeros(n_GCNs)
+UQ_corr_vol_upper = np.zeros(n_GCNs)        # 95th percentile
+UQ_corr_vol_lower = np.zeros(n_GCNs)        # 5th percentile
+
     
 for i in xrange(n_GCNs):
 
@@ -41,7 +44,10 @@ for i in xrange(n_GCNs):
     rate = ORR_rate(BEs[0], BEs[1],explicit=False)
     det_vol[i] = rate
     
-    n_MC_samples = 1000
+    n_MC_samples = 10000
+    #n_MC_samples = 100     # for fast testing
+    upper_ind = int(n_MC_samples * 0.95)
+    lower_ind = int(n_MC_samples * 0.05)
     data_uncorr = np.zeros(n_MC_samples)
     data_corr = np.zeros(n_MC_samples)
     
@@ -62,26 +68,45 @@ for i in xrange(n_GCNs):
     
     UQ_uncorr_vol[i] = np.exp( np.mean( np.log(data_uncorr)))
     UQ_corr_vol[i] = np.exp( np.mean( np.log(data_corr)))
+    UQ_corr_vol_upper[i] = data_corr[upper_ind]
+    UQ_corr_vol_lower[i] = data_corr[lower_ind]
+    
+'''
+smooth the data
+'''
+y = np.log(UQ_corr_vol_upper)
+yhat = savitzky_golay(y, 9, 3) # window size 51, polynomial order 3
+UQ_corr_vol_upper = np.exp(yhat)
 
+y = np.log(UQ_corr_vol_lower)
+yhat = savitzky_golay(y, 9, 3) # window size 51, polynomial order 3
+UQ_corr_vol_lower = np.exp(yhat)
+
+y = np.log(UQ_uncorr_vol)
+yhat = savitzky_golay(y, 9, 3) # window size 51, polynomial order 3
+UQ_uncorr_vol = np.exp(yhat)
+
+y = np.log(UQ_corr_vol)
+yhat = savitzky_golay(y, 9, 3) # window size 51, polynomial order 3
+UQ_corr_vol = np.exp(yhat)
+    
+'''
+Normalize the data - should not be needed
+'''
+
+#Pt111_norm = 1.35703847925e-15      # experimental value in mA / atom for Pt(111) at GCN = 7.5    
+#Pt111_now = np.exp( np.interp( 7.5, GCN_vec, np.log(det_vol) ) )
+#norm_factor = Pt111_norm / Pt111_now
+#print Pt111_norm
+#print Pt111_now
+#print norm_factor
+
+    
 '''
 Write data to numpy files
 '''
+
+all_data = np.vstack([GCN_vec, det_vol, UQ_uncorr_vol, UQ_corr_vol, UQ_corr_vol_upper, UQ_corr_vol_lower])
+#all_data[1::,:] = all_data[1::,:] * norm_factor
+np.save(metal_name+'_UQ_vol.npy', all_data)   
     
-    
-'''
-Plot volcano plots
-'''
-    
-fig = plt.figure()
-plt.plot(GCN_vec, det_vol, label = 'deterministic')
-plt.plot(GCN_vec, UQ_corr_vol, label = 'correlated UQ')
-plt.plot(GCN_vec, UQ_uncorr_vol, label = 'uncorrelated UQ')
-plt.xticks(size=20)
-plt.yticks(size=20)
-plt.xlabel('GCN',size=20)
-plt.ylabel('log(rate)',size=20)
-plt.yscale('log')
-plt.legend(loc=4, prop={'size':20}, frameon=False)
-plt.tight_layout()
-plt.savefig(metal_name + '_UQ_volcano.png', format='png', dpi=600)
-plt.close()
