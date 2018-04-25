@@ -206,7 +206,29 @@ class dynamic_cat(object):
         ''' Revert last move for simulated annealing '''
         self.flip_atom(self.atom_last_moved)
         
-        
+    
+    def sym_inds_to_var_ind(self, sym_ind1, sym_ind2):
+        '''
+        Convert 2-indices to 1
+        :param sym_ind1: Index of the atom along the first dimension
+        :param sym_ind2: Index of the atom along the second dimension
+        :returns: Index of the atom
+        '''
+        sym_ind1 = sym_ind1 % self.dim1
+        sym_ind2 = sym_ind2 % self.dim2
+        return sym_ind2 * self.dim1 + sym_ind1
+    
+    
+    def var_ind_to_sym_inds(self,var_ind):
+        '''
+        Convert 2-indices to 1
+        :param: Index of the atom
+        :returns sym_ind1: Index of the atom along the first dimension
+        :returns sym_ind2: Index of the atom along the second dimension
+        '''
+        return var_ind % self.dim1, var_ind / self.dim1
+    
+    
     def show(self, fname = 'structure_1', fmat = 'png', transmute_top = False):
                 
         '''

@@ -33,7 +33,8 @@ class metal:
             
             self.E_coh = 2.3645 				 
             self.lc_PBE = 4.155657928				
-            self.load_DFT_data('Au_BEs.npy')
+            #self.load_DFT_data('Au_BEs.npy')
+            self.load_DFT_data('Au_Nature_BEs.npy')
             
         else:
             

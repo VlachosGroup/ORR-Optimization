@@ -8,6 +8,11 @@ from __future__ import division
 import numpy as np
 from orr_mkm import ORR_MKM
 import matplotlib.pyplot as plt
+
+import os
+import sys
+this_folder = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(this_folder,'..','structure')) 
 from metal import metal
 from ORR import ORR_rate
 metal_name = 'Pt'
@@ -78,6 +83,8 @@ plt.plot(GCN_terrace,coverage_edge)
 plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
+plt.savefig('Josh1.png', format='png')
+plt.close()
 
 """GCN 5.1 edge coverage"""
 plt.figure(2)
@@ -85,6 +92,8 @@ plt.plot(GCN_terrace,coverage_cedge[:,0],GCN_terrace,coverage_cedge[:,2],GCN_ter
 plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
+plt.savefig('Josh2.png', format='png')
+plt.close()
 
 """GCN 8.5 cavity coverage"""
 plt.figure(3)
@@ -92,6 +101,8 @@ plt.plot(GCN_terrace,coverage_cavity[:,1],GCN_terrace,coverage_cavity[:,3],GCN_t
 plt.legend(['OH','OOH','O (fcc)','O (atop)'])
 plt.ylabel('coverage [ML]')
 plt.xlabel('GCN')
+plt.savefig('Josh3.png', format='png')
+plt.close()
 
 """Generating 2D map of rate for cavity and edge sites"""
 '''
@@ -119,8 +130,7 @@ rate_edge = rate_edge * Pt111_norm / Pt111_now
 rate_cavity = rate_cavity * Pt111_norm/ Pt111_now
 rate_cedge = rate_cedge * Pt111_norm / Pt111_now
 
-print np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
-#raise NameError('stop')
+print np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) ) # should be Pt111_norm
 
 '''
 Plot volcano for different edges, cavity and terrace based Hamiltonians
@@ -131,10 +141,11 @@ plt.plot(GCN_terrace,np.log(rate_terrace),GCN_terrace,np.log(rate_edge),GCN_terr
 plt.legend(['Terrace (GCN=7.5)','Edge (GCN=6.4)','Edge (GCN = 5.1)','Cavity (GCN = 8.5)'],loc=4,frameon=False)
 plt.ylabel('log(rate) log[mA/atom]')
 plt.xlabel('GCN')
-
+plt.savefig('Josh4.png', format='png')
+plt.close()
 
 """plotting 2D volcano"""
-"""
+'''
 rate_list2 = np.array([i if i>0 else 10**16 for i in rate_cavity_edge])
 rate_list2 = np.array([i if i<> 10**16 else min(rate_list2) for i in rate_list2])*Pt111_norm / Pt111_now
 rate_matrix = (rate_list2).reshape(50,50)
@@ -150,7 +161,7 @@ plt.colorbar(label='log$_{10}$(rate) log$_{10}$[mA/atom]')
 plt.gcf().subplots_adjust(bottom=0.15)
 plt.gcf().subplots_adjust(left=0.17)
 plt.show()
-"""
+'''
 
 """comparing Pt111 rates"""
 plt.figure(5)
@@ -159,3 +170,22 @@ plt.plot(GCN_terrace,np.log(rate_0cov),GCN_terrace,np.log(rate_impl),GCN_terrace
 plt.legend(['impl solv @ zero cov','expl solv @ zero cov','impl solv @ SS cov','expl solv @ SS cov'],loc=4,frameon=False)
 plt.ylabel('log(rate) log[mA/atom]')
 plt.xlabel('GCN')
+plt.savefig('Josh5.png', format='png')
+plt.close()
+
+plt.figure(6)
+plt.plot(GCN_terrace, rate_terrace, marker=None, linestyle = '-', color = 'k', label = 'terrace')
+plt.plot(GCN_terrace, rate_edge, marker=None, linestyle = '-', color = 'r', label = 'edge')
+plt.plot(GCN_terrace, rate_cedge, marker=None, linestyle = '-', color = 'b', label = 'cedge')
+plt.plot(GCN_terrace, rate_cavity, marker=None, linestyle = '-', color = 'g', label = 'cavity')
+plt.plot(GCN_terrace, rate_vallejo, marker=None, linestyle = '-', color = 'm', label = 'Calle-Vallejo')
+plt.legend(loc=4, prop={'size':20}, frameon=False)
+plt.ylabel('rate [mA/atom]')
+plt.xlabel('GCN')
+plt.yscale('log')
+plt.savefig('Marcel.png', format='png')
+plt.close()
+
+# Save volcano data in units of mA/atom
+data_out = np.transpose( np.vstack([GCN_terrace, rate_terrace, rate_edge, rate_cedge, rate_cavity, rate_vallejo]) )
+np.save('all_volcanos.npy', data_out)

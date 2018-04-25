@@ -40,7 +40,7 @@ def optimize(cat, weight = 1.0, ensemble = 'GCE', n_cycles = 100, T_0 = 0.7, j_n
     current_density = cat.normalize_current_density(total_current)
     surface_energy = cat.normalize_surface_energy(E_form)
     if verbose:
-        print 'Steps elapsed \t Current density (J/cm^2) \t Surface energy (mA/cm^2)'
+        print 'Steps elapsed \t Current density (mA/cm^2) \t Surface energy (J/m^2)'
         print str(0) + '\t' + str(current_density) + '\t' + str(surface_energy)
     OF_rec_1[record_ind] = current_density
     OF_rec_2[record_ind] = surface_energy
