@@ -27,20 +27,47 @@ class ORR_MKM:
     atomic oxygen (O), hydroxyl (OH), and hydroperoxyl (OOH) at the specified
     generalized coordination number (GCN) using get_coverage().
     The intensive rate at all relevant GCNs can also be obtained using get_rate().
+
+    Input
+        site_type: string
+            The site type of the desired coverages and rates. It can either be
+            terrace (Pt111 without defects)
+
+    Interactive Methods
+        get_coverage(GCN)
+            Obtain steady state coverage at a specified GCN [ML]
+        get_rate(GCN,coverage)
+            Obtain rate at the specified GCN and coverage [mA/atom]
     
-    site_type: String
-        The site type of the desired coverages and rates. It can either be
-        terrace (Pt111 without defects)
-    
+    Internal Methods
+        coverage(GCN_scaling)
+            Implements the relevant coverage method in an ode solver
+        coveragefunc(Theta,t,popt,GCN_scaling,GET_RATE=False)
+            Returns coverages solved through ode integrations or rate at either
+            terrace or edge sites.
+        coverage_cavity_edge(Theta,t,popt_terrace,popt_cavity_edge
+        ,GCN_scaling_cavity,GCN_scaling_edge,GET_RATE=False)
+            Returns coverages solve through ode integrations or rate at 
+            edge and cavity sites that are coupled.
+        gcn_scaling(GCN,GCN_reference)
+            Amount to shift derivatives of surface energy due to differences
+            in GCN between the MKM and the DFT used to parameterize the
+            Hamiltonian
+        Gfit()
+            Fits parameters of the Hamiltonian for terrace and edge sites
+        Gfit_cavity_edge()
+            Fits parameters for Hamiltonian where edge and cavity sites are 
+            coupled and therefore both considered in the same DFT calculations.
+        rate(coverage,GCN_scaling)
+            Implements the relevant rate method in an ode solver
     """
     def __init__(self, site_type):
         """
-        Attributes generated
-            site_type: directs the DFT Data to be used, and the MKM to run
-            G_H2Osurf: Water replacment energy when displaced by OH or OOH
-            Gfit(): function that fits parameters of the Hamiltonian for terrace and edge sites
-            Gfit_cavity_edge() function that fits parameters for Hamiltonian
-            where edge and cavity sites are both considered in the same DFT calculations
+        Attributes Generated
+            site_type: string
+                Directs which DFT Data to be used, and the MKM to run
+            G_H2Osurf: scalar
+                Water replacment energy when displaced by OH or OOH
         """
         self.site_type = site_type
         E_H2Og = -14.219432 # water in vacuum
@@ -54,18 +81,27 @@ class ORR_MKM:
     def Gfit(self):
         """
         Gfit loads either Pt terrace (GCN=7.5) or 6.4 GCN edge data and uses it
-        to parameterize the hamiltonian. It also generates functional attributes
-        for calculating the binding energy of OH, OOH and O.
+        to parameterize the Hamiltonian. It also generates functional attributes
+        for calculating the derivatives of surface energy with respect to
+        OH, OOH and O.
         
-        Attributes used:
-            site_type: Terrace, Edge, or Edge/GCN
-            G_H2Osurf: Energy of solvated H2O interacting with a surface
+        Attributes used
+            site_type: string
+                Terrace, Edge, or cavity_edge
+            G_H2Osurf: scalar
+                Energy of solvated H2O interacting with a surface
         
         Attributes Generated
             Derivatives of the Hamiltonian with respect to each surface species
-            dGdOH: function for calculating the binding energy of OH
-            dGdOOH: function for calculating the binding energy of OOH
-            dGdO: function for calculating the binding energy of O
+            The following determine changes in surface energy energy given 
+            coverage, a set of parameters used to fit a Hamiltonian, and a
+            shift in zero coverage energy determined by the GCN used.
+            dGdOH: function
+                Change in surface energy due to binding of OH 
+            dGdOOH: function
+                Change in surface energy due to binding of OOH
+            dGdO: function
+                Change in surface energy due to binding of of O
         """
         data_file = ''
         #Go is the energy of the bare slab with 12 water molecules (2 full layers)
@@ -103,7 +139,8 @@ class ORR_MKM:
         #Gsurf is the Hamiltonian. It is the surface energy with adsorbates
         def Gsurf(Coverageinput,s,tp,u,x,y,z,GOHo,GOOHo,GOo):
             OHcov, OOHcov, Ocov = Coverageinput
-            Gval = GOHo*OHcov + GOOHo*OOHcov + GOo*Ocov + s*(tp*Ocov+OHcov)**u + x*(y*Ocov+OHcov)**z*OOHcov
+            Gval = (GOHo*OHcov + GOOHo*OOHcov + GOo*Ocov
+                    + s*(tp*Ocov+OHcov)**u + x*(y*Ocov+OHcov)**z*OOHcov)
             return Gval
 #==============================================================================
 #       Energies from DFT minus the surface energy of the surface with just
@@ -124,29 +161,79 @@ class ORR_MKM:
         ,np.array([lmax,lmax,emax,lmax,lmax,emax,0,0,0])))
 #==============================================================================
 #         The following functions take in a coverage, values for regressed
-#         Hamiltonian parameter, and a value to adust the zero coverage binding
-#         energy due to changes in GCN. The output is the binding energy of the
-#         relevent species at the inputted coverages
+#         Hamiltonian parameter, and a value to adust the zero coverage surface
+#         energy due to changes in GCN. The output is the change in surface
+#         energy of the relevent species at the inputted coverages
 #==============================================================================
-        #binding energy of OH for Pt terrace and 6.4 GCN edge
         def dGdOH(Coverageinput,popt,GCN_scaling):
+            """
+            Calculates the derivative of surface energy with respect to OH
+            on a terrace or edge site
+            
+            Inputs
+                Coverageinput: length 3 array
+                    Coverages of OH, OOH, and O
+                popt: length 9 array
+                    Parameters of fitted Hamiltonian
+                GCN_scaling: scalar
+                    Value to shift zero coveage surface energy change due to 
+                    GCN of the site being different than DFT data
+            Output
+                dGval: scalar
+                    Change in surface energy due to adsorption of an OH molecule (eV/molecule)
+            """
             s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
             #set negative coverages from numerical error of ode solver to 0
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHcov, OOHcov, Ocov = Coverageinput
-            dGval = GOHo+GCN_scaling + u*s*(tp*Ocov+OHcov)**(u-1) + z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
-            return dGval
-        #binding energy of OOH for Pt terrace and 6.4 GCN edge            
+            dGval = (GOHo+GCN_scaling + u*s*(tp*Ocov+OHcov)**(u-1)
+            + z*x*(y*Ocov+OHcov)**(z-1)*OOHcov)
+            return dGval          
         def dGdOOH(Coverageinput,popt,GCN_scaling):
+            """
+            Calculates the derivative of surface energy with respect to OOH
+            on a terrace or edge site
+            
+            Inputs
+                Coverageinput: length 3 array
+                    Coverages of OH, OOH, and O
+                popt: length 9 array
+                    Parameters of fitted Hamiltonian
+                GCN_scaling: scalar
+                    Value to shift zero coverage zero coverage energy change
+                    due to GCN of the site being different than DFT data
+            Output
+                dGval: scalar
+                    Change in surface energy due to adsorption of an OOH molecule (eV/molecule)
+            """
             s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
             #set negative coverages from numerical error of ode solver to 0
             Coverageinput = [i if i>0 else 0 for i in Coverageinput] 
             OHcov, OOHcov, Ocov = Coverageinput
             dGval = GOOHo+GCN_scaling + x*(y*Ocov+OHcov)**z
             return dGval
-        #binding energy of O for Pt terrace and 6.4 GCN edge and lower
-        #GCN edge/cavity combined site
+
         def dGdO(Coverageinput,popt,GCN_scaling):
+            """
+            Calculates the derivative of surface energy with respect to O
+            on a terrace/cavity site or a coupled edges and cavities
+            Note different input shapes if site_type=='cavity_edge'
+            
+            Inputs
+                Coverageinput: length 3 array or array of shape (3,2)
+                    Coverages of OH, OOH, and O or
+                    [OHedge, OHcav], [OOHedge, OOHcav] and [Oedge, Ocav]
+                popt: length 9 array
+                    Parameters of fitted Hamiltonian
+                GCN_scaling: scalar or length two array
+                    Value to shift zero coverage surface energy change due to GCN of
+                    of site being different than DFT data
+            Output
+                dGval: scalar or length 2 array (if site_type=='cavity edge')
+                    Change in surface energy due to adsorption of an O atom (eV/atom)
+                    if site_type=='cavity edge' it is the change in surface
+                    energy due to O adsorption on a edge and cavity site, respectively
+            """
             s,tp,u,x,y,z,GOHo,GOOHo,GOo = popt
             #dGval is an array of length 2 (for cavity and edge sites combined)
             #dGval[0] is for the edge site and dGval[1] is for the cavity site
@@ -167,28 +254,35 @@ class ORR_MKM:
                 #set negative coverages from numerical error of ode solver to 0
                 Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHcov, OOHcov, Ocov = Coverageinput
-            dGval = GOo+GCN_scaling + tp*u*s*(tp*Ocov+OHcov)**(u-1)+y*z*x*(y*Ocov+OHcov)**(z-1)*OOHcov
+            dGval = (GOo+GCN_scaling + tp*u*s*(tp*Ocov+OHcov)**(u-1)
+                    +y*z*x*(y*Ocov+OHcov)**(z-1)*OOHcov)
             return dGval
-        #set method attributes to binding energy functions so they can be used by other methods in the orr_mkm.py class
+        #set method attributes to surface energy derivative functions so they can be used by other methods in the orr_mkm.py class
         self.dGdOH = dGdOH
         self.dGdOOH = dGdOOH
         self.dGdO = dGdO
         
     def Gfit_cavity_edge(self):
         """
-        Gfit_cavity_edge loads Pt DFT data for the 5.1 GCN edge sites and 8.5 GCN cavity site
-        the hamiltonian. It also generates functional attributes
-        for calculating the binding energy of OH, OOH and O.
+        Gfit_cavity_edge loads Pt DFT data for the coupled 5.1 GCN edge sites 
+        and 8.5 GCN cavity site the hamiltonian. It also generates functional
+        attributes for calculating the derivative of surface energy with 
+        respect to  OH, OOH and O.
         
         Attributes used:
-            G_H2Osurf: Energy of solvated H2O interacting with a surface
+            G_H2Osurf: scalar
+                Energy of solvated H2O interacting with a surface
         
         Attributes Generated
             Derivatives of the Hamiltonian with respect to each surface species
-            dGdOHedge: function for calculating the binding energy of OH (edge)
-            dGdOOHedge: function for calculating the binding energy of OOH (edge)
-            dGdOHcav: function for calculating the binding energy of OH (cavity)
-            dGdOOHcav: function for calculating the binding energy of OOH (cavity)
+            dGdOHedge: function
+                Change in surface energy from adsorption of OH on an edge site
+            dGdOOHedge: function
+                Change in surface energy from adsorption of OOH on an edge site
+            dGdOHcav: function
+                Change in surface energy from adsorption OH on an cavity site
+            dGdOOHcav: function
+                Change in surface energy from adsorption OOH on an cavity site
         """
         #DFT Data for edge sites with a GCN of 5.167 and a single 8.5 GCN cavity site
         data_file = 'Surface_Energies_cavity.csv'
@@ -200,7 +294,9 @@ class ORR_MKM:
         #Hamiltonian for Energy of a cavity with an edge site.
         def Gsurf(Coverageinput,x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo):
             OHedge, OHcav, OOHedge, OOHcav = Coverageinput
-            Gval = GOHedgeo*OHedge + GOHcavo*OHcav + GOOHedgeo*OOHedge + GOOHcavo*OOHcav + x*(y*OHedge+OOHedge)**z + x2*(OHedge+OOHedge)*OHcav + x3*(OHedge+OOHedge)*OOHcav
+            Gval = (GOHedgeo*OHedge + GOHcavo*OHcav + GOOHedgeo*OOHedge
+            + GOOHcavo*OOHcav + x*(y*OHedge+OOHedge)**z
+            + x2*(OHedge+OOHedge)*OHcav + x3*(OHedge+OOHedge)*OOHcav)
             return Gval
         
         Go = -365.04325
@@ -209,44 +305,135 @@ class ORR_MKM:
         lmax = 30
         emin = 1
         emax=4
-        self.popt_cavity_edge, pcov = curve_fit(Gsurf,Coverages,Energies/9.0,bounds=(np.array([lmin,lmin,lmin,lmin,emin,-20,-20,-20,-20]),np.array([lmax,lmax,lmax,lmax,emax,0,0,0,0])))
+        self.popt_cavity_edge, pcov = curve_fit(Gsurf,Coverages,Energies/9.0
+            ,bounds=(np.array([lmin,lmin,lmin,lmin,emin,-20,-20,-20,-20])
+            ,np.array([lmax,lmax,lmax,lmax,emax,0,0,0,0])))
         def dGdOHedge(Coverageinput,popt,popt_terrace,GCN_scaling):
+            """
+            Calculates the derivative of surface energy with respect to OH on an edge site
+            
+            Inputs
+                Coverageinput: length 5 array
+                    coverages of OH (edge), OH (cavity)
+                    , OOH (edge), OOH (cavity) and O
+                popt: length 9 array
+                    parameters of fitted Hamiltonian for coupled edges/cavity
+                popt_terrace: length 9 array
+                    parameters fitted to the Hamiltonian for the terrace/edge 
+                    site without cavities. Uses DFT dat afor 6.4 GCN edge site
+                GCN_scaling: scalar
+                    Value to shift zero coveage surface energy change due to GCN of
+                    of site being different than DFT data
+            Output
+                dGval: scalar
+                    Change in surface energy due to adsorption of an OH on an
+                    edge site (eV/molecule)
+            """
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
-            Coverageinput = [i if i>0 else 0 for i in Coverageinput] #set negative coverages from numerical error of ode solver to 0
+            #set negative coverages from numerical error of ode solver to 0
+            Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
-            dGval = GOHedgeo+GCN_scaling + y*x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
+            dGval = (GOHedgeo+GCN_scaling + y*x*z*(y*OHedge+OOHedge)**(z-1) 
+            + x2*OHcav + x3*OOHcav)
             + u_terrace*s_terrace*(tp_terrace*Ocov)**(u_terrace-1)
             return dGval
 
         def dGdOHcav(Coverageinput,popt,popt_terrace,GCN_scaling):
+            """
+            Calculates the derivative of surface energy with respect to OH on 
+            a cavity site
+            
+            Inputs
+                Coverageinput: length 5 array
+                    Coverages of OH (edge), OH (cavity)
+                    , OOH (edge), OOH (cavity) and O
+                popt: length 9 array
+                    Parameters of fitted Hamiltonian for coupled edges/cavity
+                popt_terrace: length 9 array
+                    Parameters fitted to the Hamiltonian for the terrace/edge 
+                    site without cavities. Uses DFT dat afor 6.4 GCN edge site
+                GCN_scaling: scalar
+                    Value to shift zero coverage surface energy derivative due to GCN of
+                    of site being different than DFT data
+            Output
+                dGval: scalar
+                    Change in surface energy due to adsorption of an OH on a
+                    cavity site (eV/molecule)
+            """
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
-            Coverageinput = [i if i>0 else 0 for i in Coverageinput] #set negative coverages from numerical error of ode solver to 0
+            #set negative coverages from numerical error of ode solver to 0
+            Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
-            dGval = GOHcavo+GCN_scaling + x2*(OHedge+OOHedge)
+            dGval = (GOHcavo+GCN_scaling + x2*(OHedge+OOHedge))
             + u_terrace*s_terrace*(tp_terrace*Ocov)**(u_terrace-1)
             return dGval
         
         def dGdOOHedge(Coverageinput,popt,popt_terrace,GCN_scaling):
+            """
+            Calculates the derivative of surface energy with respect to OOH
+            on an edge site
+            
+            Inputs
+                Coverageinput: length 5 array
+                    Coverages of OH (edge), OH (cavity)
+                    , OOH (edge), OOH (cavity) and O
+                popt: length 9 array
+                    Parameters of fitted Hamiltonian for coupled edges/cavity
+                popt_terrace: length 9 array
+                    Parameters fitted to the Hamiltonian for the terrace/edge 
+                    site without cavities. Uses DFT dat afor 6.4 GCN edge site
+                GCN_scaling: scalar
+                    Value to shift zero coverage surface energy derivative due to GCN of
+                    of site being different than DFT data
+            Output
+                dGval: scalar
+                    Change in surface energy due to adsorption of an OOH on an
+                    edge site (eV/molecule)
+            """
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
-            Coverageinput = [i if i>0 else 0 for i in Coverageinput] #set negative coverages from numerical error of ode solver to 0
+            #set negative coverages from numerical error of ode solver to 0
+            Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
-            dGval = GOOHedgeo+GCN_scaling + x*z*(y*OHedge+OOHedge)**(z-1) + x2*OHcav + x3*OOHcav
+            dGval = (GOOHedgeo+GCN_scaling + x*z*(y*OHedge+OOHedge)**(z-1)
+            + x2*OHcav + x3*OOHcav)
             + x_terrace*(y_terrace*Ocov)**z_terrace
             return dGval
         
         def dGdOOHcav(Coverageinput,popt,popt_terrace,GCN_scaling):
+            """
+            Calculates the derivative of surface energy with respect to OOH
+            on an cavity site
+            
+            Inputs
+                Coverageinput: length 5 array
+                    Coverages of OH (edge), OH (cavity)
+                    , OOH (edge), OOH (cavity) and O
+                popt: length 9 array
+                    Parameters of fitted Hamiltonian for coupled edges/cavity
+                popt_terrace: length 9 array
+                    Parameters fitted to the Hamiltonian for the terrace/edge 
+                    site without cavities. Uses DFT dat afor 6.4 GCN edge site
+                GCN_scaling: scalar
+                    Value to shift zero coveage surface energy change due to GCN of
+                    of site being different than DFT data
+            Output
+                dGval: scalar
+                    Change in surface energy due to adsorption of an OOH on a
+                    cavity site (eV/molecule)
+            """
             x,x2,x3,y,z,GOHedgeo,GOHcavo,GOOHedgeo,GOOHcavo = popt
             (s_terrace,tp_terrace,u_terrace,x_terrace,y_terrace,z_terrace
             ,GOHo_terrace,GOOHo_terrace,GOo_terrace) = popt_terrace
-            Coverageinput = [i if i>0 else 0 for i in Coverageinput] #set negative coverages from numerical error of ode solver to 0
+            #set negative coverages from numerical error of ode solver to 0
+            Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav,Ocov = Coverageinput
-            dGval = GOOHcavo+GCN_scaling + x3*(OHedge + OOHedge)
+            dGval = (GOOHcavo+GCN_scaling + x3*(OHedge + OOHedge))
             + x_terrace*(y_terrace*Ocov)**z_terrace
             return dGval
         self.dGdOHedge = dGdOHedge
@@ -260,21 +447,31 @@ class ORR_MKM:
         for the Pt(111) terrace and edge sites.
         
         Input:
-            Theta: Coverages (OH, OOH, O (fcc) and O (atop)).
-                    These are initial guesses if GET_RATE==False
-            t: time steps for ode integration. Dummy variable used if GET_RATE==True
-            popt: parameters for binding energy functions determined from regressing the Hamiltonian
-            GCN_scaling: Amount to shift zero coverage binding energies of adsorbates based on GCN
-            GET_RATE: determines with coverage or rate is returned
+            Theta: array of length 4 
+                Coverages (OH, OOH, O (fcc) and O (atop)).
+                These are initial guesses if GET_RATE==False
+            t: 1d array
+                Time steps for ode integration. Dummy variable used if GET_RATE==True
+            popt: array of length 9 
+                Parameters for energy derivative functions determined from regressing the Hamiltonian
+            GCN_scaling: array of length 3
+                Amount to shift zero coverage binding energies of adsorbates based on GCN
+            GET_RATE: boolean
+                Determines weather change in coverage or rate is returned
             
         Output:
-            rate_electron: summed rate of all electrochemical steps (current) (for GET_RATE == True)
-            dydt: change in coverage with the internal timestep (for GET_RATE == False)
+            rate_electron: scalar
+                Summed rate of all electrochemical steps (current) (for GET_RATE == True)
+            dydt: array of length 4
+                Change in coverage with the internal timestep (for GET_RATE == False)
         
         Attributes used:
-            dGdOH: function for calculating the binding energy of OH
-            dGdOOH: function for calculating the binding energy of OOH
-            dGdO: function for calculating the binding energy of O
+            dGdOH: function
+                Change in surface energy due to binding of OH 
+            dGdOOH: function
+                Change in surface energy due to binding of OOH
+            dGdO: function
+                Change in surface energy due to binding of of O
         """
         kB = 8.617e-5                      # eV / K
         h = 4.135667662e-15;               # eV * s
@@ -382,35 +579,53 @@ class ORR_MKM:
             dydt = [dThetaOHdt,dThetaOOHdt,dThetaOfccdt,dThetaOatopdt]
             return dydt
     
-    def coverage_cavity_edge(self,Theta,t,popt_O,popt_cavity_edge,GCN_scaling_cavity,GCN_scaling_edge,GET_RATE=False):
+    def coverage_cavity_edge(self,Theta,t,popt_terrace,popt_cavity_edge
+                    ,GCN_scaling_cavity,GCN_scaling_edge,GET_RATE=False):
         """
-        Calcluates change in coverages (GET_RATE==False) or rates (GET_RATE==True)
-        for the Pt(111) terrace and edge sites.
+        Calcluates change in coverages (GET_RATE==False) or rates 
+        (GET_RATE==True) for the coupled Pt edge and cavity sites.
         
         Input:
-            Theta: Coverages (OH, OOH, O (fcc) and O (atop)).
-                    These are initial guesses if GET_RATE==False
-            t: time steps for ode integration. Dummy variable used if GET_RATE==True
-            popt_O: parameters for O binding energy function based on regressing the 6.4 edge site Hamiltonian
-            GCN_scaling_cavity: Amount to shift zero coverage binding energies
-            of the cavity due to changes in GCN
-            GCN_scaling_edge: Amount to shift zero coverage binding enregies on
-            edge sites due to changes in GCN
-            GET_RATE: determines with coverage or rate is returned
+            Theta: array of length 8
+                Coverages (OH, OOH, O (fcc) and O (atop)).
+                These are initial guesses if GET_RATE==False
+            t: array
+                Time steps for ode integration. Dummy variable used if 
+                GET_RATE==True
+            popt_terrace: array of length 9
+                Parameters for based on regressing 
+                the 6.4 edge site Hamiltonian
+            popt_cavity_edge: array of length 9
+                Parameters for O surface energy derivative function based on regressing 
+                the coupled edge and cavity site Hamiltonian
+            GCN_scaling_cavity: array of length 3
+                Amount to shift zero coverage binding energies
+                of the cavity due to changes in GCN
+            GCN_scaling_edge:  array of length 3
+                Amount to shift zero coverage binding enregies on
+                edge sites due to changes in GCN
+            GET_RATE: boolean
+                Determines with coverage or rate is returned
             
         Output:
-            rate_electron_cavity: summed rate of all electrochemical steps 
-            (current) (for GET_RATE == True) on the cavity
-            rate_electron_edge: summed rate of all electrochemical steps on the
-            edge sites (GET_RATE == True)
-            dydt: change in coverage with the internal timestep (for GET_RATE == False)
+            rate_electron_cavity: scalar
+                Summed rate of all electrochemical steps 
+                (current) (for GET_RATE == True) on the cavity
+            rate_electron_edge: scalar
+                Summed rate of all electrochemical steps on the
+                edge sites (for GET_RATE == True)
+            dydt: array of length 8
+                Change in coverage with the internal timestep (for GET_RATE == False)
         
         Attributes used:
-            dGdOHedge: function for calculating the binding energy of OH (edge)
-            dGdOOHedge: function for calculating the binding energy of OOH (edge)
-            dGdOHcav: function for calculating the binding energy of OH (cavity)
-            dGdOOHcav: function for calculating the binding energy of OOH (cavity)
-            dGdO: function for calculating the binding energy of O
+            dGdOHedge: function
+                Change in surface energy from adsorption of OH on an edge site
+            dGdOOHedge: function
+                Change in surface energy from adsorption of OOH on an edge site
+            dGdOHcav: function
+                Change in surface energy from adsorption OH on an cavity site
+            dGdOOHcav: function
+                Change in surface energy from adsorption OOH on an cavity site
         """
         kB = 8.617e-5                      # eV / K
         h = 4.135667662e-15;               # eV * s
@@ -429,11 +644,23 @@ class ORR_MKM:
         OHedge = Theta[0]; OHcav = Theta[1]; OOHedge = Theta[2]; OOHcav = Theta[3]
         Ocovfccedge = Theta[4]; Ocovatopedge = Theta[5]; Ocovfcccav = Theta[6]; Ocovatopcav = Theta[7]
         #Calculating Coverage Dependent Adsorption Energies   
-        dE_OHedge = self.dGdOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge,popt_O,GCN_scaling_edge[0])
-        dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge,popt_O,GCN_scaling_cavity[0])
-        dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge,popt_O,GCN_scaling_edge[1])
-        dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge,popt_O,GCN_scaling_cavity[1])
-        dE_Ofcc = self.dGdO(np.array([np.array([OHedge,OHcav]),np.array([OOHedge,OOHcav]),np.array([(Ocovfccedge+Ocovatopedge),(Ocovfcccav+Ocovatopcav)])]),popt_O,np.array([GCN_scaling_edge[2],GCN_scaling_cavity[2]]))
+        dE_OHedge = self.dGdOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav
+                        ,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge
+                        ,popt_terrace,GCN_scaling_edge[0])
+        dE_OHcav = self.dGdOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav
+                        ,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge
+                        ,popt_terrace,GCN_scaling_cavity[0])
+        dE_OOHedge = self.dGdOOHedge(np.array([OHedge,OHcav,OOHedge,OOHcav
+                        ,(Ocovfccedge+Ocovatopedge)]),popt_cavity_edge
+                        ,popt_terrace,GCN_scaling_edge[1])
+        dE_OOHcav = self.dGdOOHcav(np.array([OHedge,OHcav,OOHedge,OOHcav
+                        ,(Ocovfcccav+Ocovatopcav)]),popt_cavity_edge
+                        ,popt_terrace,GCN_scaling_cavity[1])
+        dE_Ofcc = self.dGdO(np.array([np.array([OHedge,OHcav])
+                        ,np.array([OOHedge,OOHcav])
+                        ,np.array([(Ocovfccedge+Ocovatopedge)
+                        ,(Ocovfcccav+Ocovatopcav)])]),popt_terrace
+                        ,np.array([GCN_scaling_edge[2],GCN_scaling_cavity[2]]))
         # Species free energies at T = 298K
         G_OHedge = dE_OHedge + ZPE[0] - TS[0] #G minus G of surface
         G_OOHedge = dE_OOHedge + ZPE[1] - TS[1] # G minus G of surface
@@ -559,10 +786,31 @@ class ORR_MKM:
             dThetaOatopedgedt = r2aedge - r_2aedge - r3aedge + r_3aedge
             dThetaOfcccavdt = rOcav - r_Ocav + r2cav - r_2cav + r2bcav - r_2bcav - r3cav + r_3cav 
             dThetaOatopcavdt = r2acav - r_2acav - r3acav + r_3acav
-            dydt = [dThetaOHedgedt,dThetaOHcavdt,dThetaOOHedgedt,dThetaOOHcavdt,dThetaOfccedgedt,dThetaOatopedgedt,dThetaOfcccavdt,dThetaOatopcavdt]
+            dydt = [dThetaOHedgedt,dThetaOHcavdt,dThetaOOHedgedt,dThetaOOHcavdt
+                    ,dThetaOfccedgedt,dThetaOatopedgedt,dThetaOfcccavdt,dThetaOatopcavdt]
             return dydt
     
     def gcn_scaling(self,GCN,GCN_reference):
+        """
+        Get the amount to shift the zero coverage surface energy derivatives due to changes
+        in GCN. Uses the energy-GCN relationship fo Calle-Vallejo from his 2015
+        Science paper to get the shift in OH and OOH energy. We have found that
+        the slope of the O binding energy with GCN of the relevant atop site
+        to be 0.08.
+        
+        Input:
+            GCN: scalar
+                GCN value to determine the shift in zero coverage
+                surface energy derivatives
+            GCN_reference: scalar
+                GCN of DFT data for which Hamiltonian was parameterized
+            
+        Output:
+            GCN_scaling: array of length 3 
+                Amount to shift zero coverage change in sufrace energy [eV] due to difference
+                in GCN of desired coverage/rate and the GCN of the DFT data used
+                to parameterize the Hamiltonian
+        """
         #binding energies at zero coverage for OH and OOH, respecitively, without solvation effects on Pt
         #These binding enregies are taken from the Energy-GCN scaling relation found in
         #Calle Vallejo 2015 (Science)
@@ -580,18 +828,39 @@ class ORR_MKM:
         return GCN_scaling
         
     def coverage(self,GCN_scaling):
-        n = range(2,5) #number of time steps to solve with the ODE integration
-        m = range(-8,6) #time to end the simulation
+        """
+        Solve the coupled nonlinear ODEs to find the steady state coverage
+        
+        Input:
+            GCN_scaling: array of length 3 or shape (2,3)
+                Amount to shift zero coverage change in surface energy of
+                adsorbates based on GCN    
+        Output:
+            t: 1d array
+                Explicit time steps 
+            sol: 1d array
+                Coverages at the explicit time steps [ML]
+        Attributes used
+            site_type: string
+                terrace, edge, or cavity_edge
+        """
+        n = range(2,5) #number of external time steps to solve with the ODE integration
+        m = range(-2,6) #time to end the simulation
         for i in n:
             for ii in m:
                 t = np.linspace(0, 10**ii, 10**i)
                 if self.site_type == 'cavity_edge':
-                    initial_guess = [3.92747564e-01, 4.69466971e-04, 7.72294626e-07,
-                    8.80151673e-13, 3.96037416e-04, 1.37359967e-11, 3.96037416e-04, 1.37359967e-11]
-                    sol = odeint(self.coverage_cavity_edge, initial_guess, t, args=(self.popt,self.popt_cavity_edge,GCN_scaling[0],GCN_scaling[1]))
+                    initial_guess = [3.92747564e-01, 4.69466971e-04
+                            , 7.72294626e-07,8.80151673e-13, 3.96037416e-04
+                            , 1.37359967e-11, 3.96037416e-04, 1.37359967e-11]
+                    sol = odeint(self.coverage_cavity_edge, initial_guess, t
+                                 , args=(self.popt,self.popt_cavity_edge
+                                         ,GCN_scaling[0],GCN_scaling[1]))
                 else:
-                    initial_guess = [6.14313809e-06, 3.56958665e-12, 1.93164910e-01, 7.73636912e-12]
-                    sol = odeint(self.coveragefunc, initial_guess, t, args=(self.popt,GCN_scaling))
+                    initial_guess = [6.14313809e-06, 3.56958665e-12
+                                     , 1.93164910e-01, 7.73636912e-12]
+                    sol = odeint(self.coveragefunc, initial_guess, t
+                                 , args=(self.popt,GCN_scaling))
 #==============================================================================
 #                 if the difference between coverages at the last three time 
 #                 steps and their respective prior time steps are less then 10**-12
@@ -610,10 +879,29 @@ class ORR_MKM:
         return t, sol
     
     def rate(self,coverage,GCN_scaling):
+        """
+        Solve the coupled nonlinear ODEs to find the rate at the provided coverage
+        
+        Input:
+            coverage: array of length 4 or length 8
+                Coverage of the terrace/edge system or the edges coupled with
+                the cavity
+            GCN_scaling: array of length 3 or shape(2,3)
+                Amount to shift zero coverage change in surface energy
+                of adsorbates based on GCN    rate(self,coverage,GCN_scaling)
+        Output:
+            rate: 1d array
+                Reaction rate (sum of all electrochemical steps) [mA/site]     
+        Attributes used
+            site_type: string
+                Terrace, Edge, or cavity_edge
+        """
         if self.site_type == 'cavity_edge':
             sol = odeint(self.coverage_cavity_edge, coverage
-                    , np.linspace(0, 1, 10**6), args=(self.popt,self.popt_cavity_edge,GCN_scaling[0],GCN_scaling[1]))
-            rate = self.coverage_cavity_edge(sol[-1],'tdummy',self.popt,self.popt_cavity_edge,GCN_scaling[0],GCN_scaling[1],GET_RATE=True)
+                    , np.linspace(0, 1, 10**6), args=(self.popt
+                    ,self.popt_cavity_edge,GCN_scaling[0],GCN_scaling[1]))
+            rate = self.coverage_cavity_edge(sol[-1],'tdummy',self.popt
+                    ,self.popt_cavity_edge,GCN_scaling[0],GCN_scaling[1],GET_RATE=True)
         else:
             sol = odeint(self.coveragefunc, coverage
                         , np.linspace(0, 1, 10**6), args=(self.popt,GCN_scaling))
@@ -621,6 +909,22 @@ class ORR_MKM:
         return rate
     
     def get_coverage(self,GCN):
+        """
+        Interactive method for obtaining an array of coverages where the last
+        coverages is the steady state coverage at the provided GCN
+        
+        Input:
+            GCN: scalar
+                GCN of the site for which the coverage is desired
+        Output:
+            t: 1d array
+                Explicit time steps 
+            sol: 1d array
+                Coverages at the explicit time steps [ML]
+        Attributes used
+            site_type: string
+                terrace, edge, or cavity_edge
+        """
         if self.site_type == 'terrace':
             GCN_reference = 7.5
             GCN_scaling = self.gcn_scaling(GCN,GCN_reference)
@@ -639,6 +943,21 @@ class ORR_MKM:
         return t, sol
     
     def get_rate(self,GCN,coverage):
+        """
+        Interactive method for obtaining the rate atspecified GCN and coverage
+        
+        Input:
+            GCN: scalar
+                GCN of the site for which the coverage is desired
+            Coverage: array of length 4 or length 8
+                Coverages for the desired rate
+        Output:
+            rate: 1d array
+                Reaction rate (sum of all electrochemical steps) [mA/site]
+        Attributes used
+            site_type: string
+                terrace, edge, or cavity_edge
+        """
         if self.site_type == 'terrace':
             GCN_reference = 7.5
             GCN_scaling = self.gcn_scaling(GCN,GCN_reference)
