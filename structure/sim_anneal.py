@@ -6,7 +6,8 @@ import numpy as np
 import random
 import time
 
-def optimize(cat, weight = 1.0, ensemble = 'GCE', n_cycles = 100, T_0 = 0.7, j_norm = 1.0, se_norm = 1.0, n_record = 100, verbose = True):
+def optimize(cat, weight = 1.0, ensemble = 'GCE', n_cycles = 100, T_0 = 0.7,
+    j_norm = 1.0, se_norm = 1.0, n_record = 100, verbose = True):
     
     '''
     Use simulated annealing to optimize defects on the surface

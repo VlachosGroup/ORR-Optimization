@@ -1,5 +1,5 @@
 '''
-1. Plots a heat map of binding energy errors
+Generates data comparing activities of different GCNs
 '''
 
 import os

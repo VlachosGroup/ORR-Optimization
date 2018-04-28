@@ -5,9 +5,6 @@ Stage 1: Maximize current density and minimize surface energy simultaneously
 Stage 2: Minimize surface energy by moving atoms to adjacent locations at constant loading
 '''
 
-import sys
-sys.path.append('/home/vlachos/mpnunez/Github/ORR-Optimization')
-
 import os
 import numpy as np
 import random
@@ -61,6 +58,7 @@ x = np.transpose(np.vstack([-quenched_data[:,0], quenched_data[:,1] ]))
 is_PE = is_pareto_efficient(x)
 Pareto_front = quenched_data[is_PE,:]
 Pareto_front = Pareto_front[Pareto_front[:,1].argsort()]
+
 
 '''
 Pareto plot

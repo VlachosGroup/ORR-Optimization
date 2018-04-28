@@ -133,14 +133,16 @@ class orr_cat(dynamic_cat):
                     print [gcn, Nnn]
         
     
-    def get_site_currents(self):
+    def get_site_currents(self, hist_info = False):
         '''
         Evaluate the contribution to the current from each site
+        :param hist_info: If false, just returns the site rates. If true, returns the GCN as well
         
         :returns: Array site currents for each active site
         '''
 
         curr_list = [0. for i in self.active_atoms]
+        GCN_list = [None for i in self.active_atoms]
         site_categ_list = [None for i in self.active_atoms]
         for i in range(len(self.active_atoms)):
             site_ind = self.active_atoms[i]
@@ -180,12 +182,22 @@ class orr_cat(dynamic_cat):
                         raise NameError('Volcano not set')
                     
                     # interpolate data to get the rate
+                    GCN_list[i] = gcn
                     curr_list[i] = np.exp( np.interp( gcn, self.volcano_data[:,0], np.log(site_type_rates) ) )
                     if math.isnan(curr_list[i]):
                         curr_list[i] = 0
-               
-        curr_list = np.transpose( np.array(curr_list).reshape([2,self.atoms_per_layer]) )  
-        return curr_list
+        
+        if hist_info:
+            GCN_list_new = []
+            curr_list_new = []
+            for i in range(len(self.active_atoms)):
+                if not GCN_list[i] is None:
+                    GCN_list_new.append(GCN_list[i])
+                    curr_list_new.append(curr_list[i])
+            return [GCN_list_new, curr_list_new]
+        else:
+            curr_list = np.transpose( np.array(curr_list).reshape([2,self.atoms_per_layer]) )  
+            return curr_list
         
                     
     def eval_current_density(self, normalize = True):
