@@ -18,8 +18,8 @@ from ORR import ORR_rate
 metal_name = 'Pt'
 x = metal(metal_name)
 
-MKM = ORR_MKM('terrace')
 GCN_terrace = np.linspace(4,9,50)
+MKM = ORR_MKM('terrace')
 rate_terrace = []
 coverage_terrace = []
 rate_0cov = []
