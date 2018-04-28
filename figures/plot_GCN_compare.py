@@ -1,3 +1,8 @@
+'''
+Plots the probability of a random site of a given structure being
+more active than a random site with optimal GCN
+'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mat
