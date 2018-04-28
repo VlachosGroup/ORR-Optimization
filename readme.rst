@@ -6,7 +6,6 @@ Catalyst structure optimization for the oxygen reduction reaction on Pt and Au.
 Dependencies
 -------------
 * `Atomic simualtion environment <https://wiki.fysik.dtu.dk/ase/>`_ : Data structures for molecular structures and file IO.
-* `DEAP <http://deap.readthedocs.io/en/master/>`_ : Used for genetic algorithm
 
 Publications
 -------------
@@ -16,3 +15,10 @@ Developers
 -----------
 * Marcel Nunez (mpnunez28@gmail.com)
 * Joshua Lansford (lansford.jl@gmail.com )
+
+Directory Structure
+--------------------
+* volcano: produces all_volcanos.npy, which is read by the files in the structures folder.
+* structure: Provides classes for simulating the ORR chemistry and catalyst structure
+* optimization_scripts: folders run the optimizations and do the analysis by importing classes from the structures folder
+* figures: produces figures for publication
