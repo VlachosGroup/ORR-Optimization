@@ -152,6 +152,7 @@ class ORR_MKM:
             Gval = (GOHo*OHcov + GOOHo*OOHcov + GOo*Ocov
                     + s*(tp*Ocov+OHcov)**u + x*(y*Ocov+OHcov)**z*OOHcov)
             return Gval
+        
 #==============================================================================
 #       Energies from DFT minus the surface energy of the surface with just
 #       the 12 water molecules. We also add back the energy of the water
@@ -291,6 +292,12 @@ class ORR_MKM:
         self.dGdOH = dGdOH
         self.dGdOOH = dGdOOH
         self.dGdO = dGdO
+        
+        #for Analysis use strictly outside the MKM
+        self.Gsurf = Gsurf
+        self.DFT_ENERGIES = Energies
+        self.GsurfO = GsurfO
+        self.DFT_COVERAGES = Coverages
         
     def Gfit_cavity_edge(self):
         """
@@ -448,12 +455,12 @@ class ORR_MKM:
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
 #==============================================================================
-#             x*z/(s*u*tp**(u-1)) is used to correct the value of yO by the ratio of
+#             x*z*y**(z-1)/(s*u*tp**(u-1)) is used to correct the value of yO by the ratio of
 #             OOH edge repulsive effects in coupled edge cavity site Hamiltonian
 #             over the OOH repulsive effects in the edge Hamiltonian
 #==============================================================================
             dGval = (GOOHedgeo+GCN_scaling + x*z*(y*OHedge+OOHedge)**(z-1)
-            + x2*OHcav + x3*OOHcav + x*z/(s*u*tp**(u-1))*yO*Ocov)
+            + x2*OHcav + x3*OOHcav + x*z*y**(z-1)/(s*u*tp**(u-1))*yO*Ocov)
             return dGval
         
         def dGdOOHcav(Coverageinput,popt,poptO,GCN_scaling):
@@ -490,12 +497,17 @@ class ORR_MKM:
 #             over the OOH repulsive effects in the edge Hamiltonian
 #==============================================================================
             dGval = (GOOHcavo+GCN_scaling + x3*(OHedge + OOHedge) 
-            + x2/(s*u*tp**(u-1))*yO*Ocov)
+            + x3/(s*u*tp**(u-1))*yO*Ocov)
             return dGval
         self.dGdOHedge = dGdOHedge
         self.dGdOHcav = dGdOHcav
         self.dGdOOHedge = dGdOOHedge
         self.dGdOOHcav = dGdOOHcav
+        
+        #Strictly for Analysis outside the use of this MKM
+        self.Gsurf_CAVEDGE = Gsurf
+        self.DFT_ENERGIES_CAVEDGE = Energies
+        self.DFT_COVERAGES_CAVEDGE = Coverages
     
     def coveragefunc(self,Theta,t,popt,GCN_scaling,GET_RATE=False):
         """
@@ -542,7 +554,7 @@ class ORR_MKM:
         pO2 = hO2*pO2g/kg2mol
         n = 1                               # number of electrons tranfered in each step    
         # *OH, *OOH, O*
-        ZPE = [0.332, 0.428, 0.072]                # zero-point energy correction, eV
+        ZPE = [0.332, 0.428, 0.072]             # zero-point energy correction, eV
         TS = [0, 0, 0]                         # entropy contribution to Gibbs energy at 298 K, eV
         #Getting Coverages
         OHcov = Theta[0]; OOHcov = Theta[1]; Ocovfcc = Theta[2]; Ocovatop = Theta[3]
@@ -563,11 +575,11 @@ class ORR_MKM:
         G_Oatop = G_Ofcc + -212.88971 - -214.35223
         # Gas species Gibbs energies
         # H2(g), H2O(l), O2(g), OH(g), OOH(g), O2 (g)
-        E_DFT_gas = [-6.7595, -14.2222, -9.86] # From my own DFT data
+        E_DFT_gas = [-6.7595, -14.2222] # From my own DFT data
         # H2, H2O(l)
         ZPE_gas = [0.270, 0.574]  # eV 
         TS_gas = [0.404, 0.583]  # at 298 K, eV / K
-        E_solv_gas = [0, -0.087]  # eV H2O(l) solvation if TS(g) at 298K
+        E_solv_gas = [0, -0.087]  # eV H2O(l) solvation if using TS(g) at 298K
         #Computing Gibbs energies of gas and solvated species
         G_H2g = E_DFT_gas[0] + ZPE_gas[0] - TS_gas[0] + E_solv_gas[0]
         G_H2Ol = E_DFT_gas[1] + ZPE_gas[1] - TS_gas[1] + E_solv_gas[1]
