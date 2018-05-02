@@ -418,12 +418,12 @@ class ORR_MKM:
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav, Ocov = Coverageinput
 #==============================================================================
-#             x2/(s*tp*u*tp**(u-1)) is used to correct the value of xO by the ratio of
+#             x*z*y**z/(s*tp*u*tp**(u-1)) is used to correct the value of xO by the ratio of
 #             OH cavity repulsive effects in coupled edge cavity site Hamiltonian
 #             over the OH repulsive effects in the edge Hamiltonian
 #==============================================================================
             dGval = (GOHcavo+GCN_scaling + x2*(OHedge+OOHedge) 
-            + x2/(s*u*tp**u)*xO*Ocov)
+            + x*z*y**z/(s*u*tp**u)*xO*Ocov)
             return dGval
         
         def dGdOOHedge(Coverageinput,popt,poptO,GCN_scaling):
@@ -492,12 +492,12 @@ class ORR_MKM:
             Coverageinput = [i if i>0 else 0 for i in Coverageinput]
             OHedge, OHcav, OOHedge, OOHcav,Ocov = Coverageinput
 #==============================================================================
-#             x3/(s*u*tp**(u-1)) is used to correct the value of yO by the ratio of
+#             x*z*y**(z-1)/(s*u*tp**(u-1)) is used to correct the value of yO by the ratio of
 #             OOH cavity repulsive effects in coupled edge cavity site Hamiltonian
 #             over the OOH repulsive effects in the edge Hamiltonian
 #==============================================================================
             dGval = (GOOHcavo+GCN_scaling + x3*(OHedge + OOHedge) 
-            + x3/(s*u*tp**(u-1))*yO*Ocov)
+            + x*z*y**(z-1)/(s*u*tp**(u-1))*yO*Ocov)
             return dGval
         self.dGdOHedge = dGdOHedge
         self.dGdOHcav = dGdOHcav
