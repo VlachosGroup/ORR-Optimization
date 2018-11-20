@@ -100,6 +100,7 @@ class orr_cat(dynamic_cat):
     def occs_to_graph(self, x = None):
         '''
         Build graph from occupancies
+        :param x: site occupancies
         '''
         if x is None:
             x = self.variable_occs
@@ -228,8 +229,9 @@ class orr_cat(dynamic_cat):
     def eval_surface_energy(self, normalize = True):
         
         '''
-        Normalized: surface energy [J/m^2]
-        Not normalized: formation energy [eV] or surface energy (J/m^2)
+        Evaluate the surface energy of the slab
+        :param normalize: Normalized: surface energy [J/m^2]. Not normalized: formation energy [eV] or surface energy (J/m^2)
+        :returns: The surface energy, in units depending on whether it is normalized
         '''
         
         E_form = 0
@@ -258,6 +260,7 @@ class orr_cat(dynamic_cat):
         '''
         If atom number ind is present in the defected graph, remove it.
         If it is not present, add it and all edges to adjacent atoms.
+        :param ind: index of the atom to be flipped
         '''        
         super(orr_cat, self).flip_atom(ind)     # Call super class method to change the occupancy vector
         
@@ -274,6 +277,7 @@ class orr_cat(dynamic_cat):
         '''
         Randomly change an adjacent atom-occupancy pair
         :param move_these: Can specify the atoms to be flipped
+        :returns: A two-element list with the indices of the atoms in the pair
         '''
         
         # Identify an adjacent atom-occupancy pair
