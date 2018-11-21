@@ -5,14 +5,13 @@ Created on Wed Jan 17 12:27:51 2018
 @author: lansf
 """
 from __future__ import division
-import numpy as np
-from orr_mkm import ORR_MKM
-import matplotlib.pyplot as plt
-
 import os
 import sys
 this_folder = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(this_folder,'..','structure')) 
+import numpy as np
+from orr_mkm import ORR_MKM
+import matplotlib.pyplot as plt
 from metal import metal
 from ORR import ORR_rate
 metal_name = 'Pt'
