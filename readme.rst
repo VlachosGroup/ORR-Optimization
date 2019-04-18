@@ -9,7 +9,7 @@ Dependencies
 
 Publications
 -------------
-* M. Nunez, J. Lansford, D.G. Vlachos, "Optimization of transition metal catalyst facet structure: Application to the oxygen reduction reaction" (under revision)
+* `M. Núñez, J. Lansford and D.G Vlachos, “Optimization of the facet structure of transition-metal catalysts applied to the oxygen reduction reaction” Nature Chemistry (2019) <https://www.nature.com/articles/s41557-019-0247-4>`_
 
 Developers
 -----------
