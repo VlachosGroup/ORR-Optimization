@@ -7,7 +7,7 @@ import copy
 import random
 import os
 
-from ase.neighborlist import NeighborList
+from ase.neighborlist import PrimitiveNeighborList
 
 from metal import metal
 from ORR import ORR_rate
@@ -58,8 +58,8 @@ class orr_cat(dynamic_cat):
         
         # Find neighbors based on distances
         rad_list = ( 2.77 + 0.2 ) / 2 * np.ones(len(self.atoms_template))               # list of neighboradii for each site
-        neighb_list = NeighborList(rad_list, self_interaction = False)      # set bothways = True to include both ways
-        neighb_list.build(self.atoms_template)
+        neighb_list = PrimitiveNeighborList(rad_list, self_interaction = False)      # set bothways = True to include both ways
+        neighb_list.build([True,True,True], self.atoms_template.get_cell(), self.atoms_template.get_positions())
         
         self.template_graph = Graph()
         for i in range(len(self.atoms_template)):
@@ -77,7 +77,7 @@ class orr_cat(dynamic_cat):
         # Get adjacent indices of cavities near top layer edges
         self.edge_cavity_dict = {}
         apl = self.atoms_per_layer
-        for ind in xrange(apl):
+        for ind in range(apl):
             d1, d2 = self.var_ind_to_sym_inds(ind)
             cav_ind_1 = self.sym_inds_to_var_ind(d1-1, d2+1)
             cav_ind_2 = self.sym_inds_to_var_ind(d1+1, d2+1)

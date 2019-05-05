@@ -41,7 +41,7 @@ if os.path.exists(data_fldr ):
 else:
     os.makedirs(data_fldr )
 
-print MOO_weight
+print (MOO_weight)
 np.save(os.path.join(data_fldr, 'omega.npy'), MOO_weight)
 
 '''
