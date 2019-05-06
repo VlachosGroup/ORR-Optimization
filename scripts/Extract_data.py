@@ -9,10 +9,9 @@ Created on Sat May  4 16:15:14 2019
 Extract the data
 '''
 
-import sys
 import os
 import numpy as np
-
+from orr_optimizer.orr_cat import *
 
 metal_list = ['Pt', 'Au']
 facet_list = ['111', '100']
@@ -20,11 +19,6 @@ facet_list = ['111', '100']
 '''
 User section
 '''
-
-# Point this to the structure folder in the ORR repository (from Github)
-
-sys.path.append('C:\\Users\\mpnun\\Google Drive\\Research\\Github\\ORR2\\ORR-Optimization\\structure')
-from orr_cat import *
 
 # Point this to where you have the data (from Josh's email)
 data_fldr = 'C:\\Users\\mpnun\\Desktop\\FromRepository\\7_6_2016'

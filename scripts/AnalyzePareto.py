@@ -1,15 +1,15 @@
 '''
-Reads Pareto optimizations produced by the old Matlab code
+Main script for optimizing ORR catalyst structure
+Two stage optimization
+Stage 1: Maximize current density and minimize surface energy simultaneously
+Stage 2: Minimize surface energy by moving atoms to adjacent locations at constant loading
 '''
 
 import os
-import sys
-this_folder = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(this_folder,'..','structure')) 
 import numpy as np
-import random
-from orr_cat import orr_cat
-from sim_anneal import *
+
+from orr_optimizer.orr_cat import orr_cat
+from orr_optimizer.sim_anneal import *
 
 import matplotlib.pyplot as plt
 import matplotlib as mat
@@ -38,32 +38,13 @@ for fldr_or_file in os.listdir(fldr):
 '''
 Build catalyst structure
 '''
-sys.setrecursionlimit(1500)
-cat = orr_cat(dim1 = 30, dim2 = 30, volcano = 'CV')
-
 unquenched_data = []
 quenched_data = []
 for subfldr in subfldr_list:
-    
-    f = open(os.path.join(subfldr, "optimum.bin"), "r")
-    a = np.fromfile(f, dtype=np.uint32)
-    a = a[2700::]       # ignore occupancies of first 3 layers of 900 atoms each
-    cat.assign_occs(a)
-    
-    j = cat.eval_current_density(normalize = True)
-    seng = cat.eval_surface_energy(normalize = True)
-    unquenched_data.append([j, seng])
-    print [j, seng]
-    
-    f = open(os.path.join(subfldr, 'quench', "optimum.bin"), "r")
-    a = np.fromfile(f, dtype=np.uint32)
-    a = a[2700::]
-    cat.assign_occs(a)
-
-    j = cat.eval_current_density(normalize = True)
-    seng = cat.eval_surface_energy(normalize = True)
-    quenched_data.append([j, seng])
-    print [j, seng]
+    traj_a = np.load(os.path.join(subfldr, 'trajectory_a.npy'))
+    traj_b = np.load(os.path.join(subfldr, 'trajectory_b.npy'))
+    unquenched_data.append(traj_a[-1,1:3:])
+    quenched_data.append(traj_b[-1,1:3:])
  
 unquenched_data = np.array(unquenched_data)
 quenched_data = np.array(quenched_data) 
@@ -73,6 +54,7 @@ x = np.transpose(np.vstack([-quenched_data[:,0], quenched_data[:,1] ]))
 is_PE = is_pareto_efficient(x)
 Pareto_front = quenched_data[is_PE,:]
 Pareto_front = Pareto_front[Pareto_front[:,1].argsort()]
+
 
 '''
 Pareto plot

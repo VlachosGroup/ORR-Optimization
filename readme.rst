@@ -19,6 +19,11 @@ Developers
 Directory Structure
 --------------------
 * volcano: produces all_volcanos.npy, which is read by the files in the structures folder.
-* structure: Provides classes for simulating the ORR chemistry and catalyst structure
+* orr_: Provides classes for simulating the ORR chemistry and catalyst structure
 * optimization_scripts: folders run the optimizations and do the analysis by importing classes from the structures folder
 * figures: produces figures for publication
+
+Usage
+-------
+* Add repository to PYTHONPATH environment variable
+* ```import orr_optimizer``` or run scripts in the scripts folder

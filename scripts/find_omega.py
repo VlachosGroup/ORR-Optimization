@@ -6,13 +6,10 @@ Stage 2: Minimize surface energy by moving atoms to adjacent locations at consta
 '''
 
 import os
-import sys
-this_folder = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(this_folder,'..','structure')) 
 import numpy as np
 import random
-from orr_cat import orr_cat
-from sim_anneal import *
+from from orr_optimizer.orr_cat import *orr_cat import orr_cat
+from from orr_optimizer.orr_cat import *sim_anneal import *
 
 import matplotlib.pyplot as plt
 import matplotlib as mat

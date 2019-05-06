@@ -102,3 +102,4 @@ ENV/
 
 *.png
 *.pyc
+py3env/*

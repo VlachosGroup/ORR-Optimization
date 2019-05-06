@@ -10,8 +10,8 @@ import os
 from ase.neighborlist import PrimitiveNeighborList
 
 from metal import metal
-from ORR import ORR_rate
-from orr_mkm import *
+from orr_optimizer.ORR import ORR_rate
+from orr_optimizer.orr_mkm import *
 from graph_theory import Graph
 from dynamic_cat import dynamic_cat
 import math

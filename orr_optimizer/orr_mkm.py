@@ -14,9 +14,7 @@ from scipy.integrate import odeint
 from math import fsum
 
 import sys
-this_folder = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(this_folder,'..','structure')) 
-from metal import metal
+from orr_optimizer.metal import metal
 
 
 class ORR_MKM:
