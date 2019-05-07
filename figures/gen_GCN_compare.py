@@ -33,7 +33,7 @@ def square(z):
     all_samples = np.zeros([n_GCNs, n_MC_samples])
 
         
-    for i in xrange(n_GCNs):
+    for i in range(n_GCNs):
 
         print 'GCN: ' + str(GCN_vec[i])
         
@@ -44,7 +44,7 @@ def square(z):
         data_uncorr = np.zeros(n_MC_samples)
         data_corr = np.zeros(n_MC_samples)
         
-        for j in xrange(n_MC_samples):
+        for j in range(n_MC_samples):
         
             # Correlated data
             BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = True)
@@ -57,7 +57,7 @@ def square(z):
     pdf1 = all_samples[0,:]
     pdf2 = all_samples[1,:]     # The GCN of comparison
     total = 0
-    for j in xrange(n_MC_samples):
+    for j in range(n_MC_samples):
         total += float(np.sum( pdf2 < pdf1[j] )) / n_MC_samples
         
     return total / n_MC_samples
@@ -74,7 +74,7 @@ if __name__ == '__main__':                 # Need this line to make parallelizat
     
     n_points = 100
     x_vec_npy = np.linspace(GCN_min, GCN_max, n_points)
-    x_vec = [x_vec_npy[i] for i in xrange(n_points)]
+    x_vec = [x_vec_npy[i] for i in range(n_points)]
     
     # Run in parallel
     pool = Pool(processes = n_procs)

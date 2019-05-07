@@ -35,7 +35,7 @@ UQ_corr_vol_upper = np.zeros(n_GCNs)        # 95th percentile
 UQ_corr_vol_lower = np.zeros(n_GCNs)        # 5th percentile
 
     
-for i in xrange(n_GCNs):
+for i in range(n_GCNs):
 
     print 'GCN: ' + str(GCN_vec[i])
     
@@ -51,7 +51,7 @@ for i in xrange(n_GCNs):
     data_uncorr = np.zeros(n_MC_samples)
     data_corr = np.zeros(n_MC_samples)
     
-    for j in xrange(n_MC_samples):
+    for j in range(n_MC_samples):
 
         # Unocorrelated data
         BEs = x.get_BEs(GCN_vec[i], uncertainty = True, correlations = False)

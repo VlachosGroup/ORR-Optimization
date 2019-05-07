@@ -7,13 +7,11 @@ Created on Wed Jan 17 12:27:51 2018
 from __future__ import division
 import os
 import sys
-this_folder = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(this_folder,'..','structure')) 
 import numpy as np
-from orr_mkm import ORR_MKM
+from orr_optimizer.orr_mkm import ORR_MKM
 import matplotlib.pyplot as plt
-from metal import metal
-from ORR import ORR_rate
+from orr_optimizer.metal import metal
+from orr_optimizer.ORR import ORR_rate
 metal_name = 'Pt'
 x = metal(metal_name)
 
@@ -48,7 +46,7 @@ for GCN in GCN_terrace:
     coverage_edge.append(solution[-1])
     rate = MKM.get_rate(GCN,solution[-1])
     rate_edge.append(rate)
-    
+
 MKM = ORR_MKM('cavity_edge')
 rate_cavity = []
 coverage_cavity = []
@@ -116,7 +114,7 @@ rate_edge = np.array(rate_edge)
 rate_cavity = np.array(rate_cavity)
 rate_cedge = np.array(rate_cedge)
 #rate_cavity_edge = np.array(rate_cavity_edge)
-    
+
 Pt111_norm = 1.35703847925e-15      # experimental value in mA / atom for Pt(111) at GCN = 7.5
 Pt111_now = np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )
 Pt111_0cov = np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_0cov) ) )
@@ -129,7 +127,7 @@ rate_edge = rate_edge * Pt111_norm / Pt111_now
 rate_cavity = rate_cavity * Pt111_norm/ Pt111_now
 rate_cedge = rate_cedge * Pt111_norm / Pt111_now
 
-print np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) ) # should be Pt111_norm
+print (np.exp( np.interp( 7.5, GCN_terrace, np.log(rate_terrace) ) )) # should be Pt111_norm
 
 '''
 Plot volcano for different edges, cavity and terrace based Hamiltonians
