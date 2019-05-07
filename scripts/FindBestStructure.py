@@ -8,8 +8,8 @@ Stage 2: Minimize surface energy by moving atoms to adjacent locations at consta
 import os
 import numpy as np
 import random
-from orr_cat import orr_cat
-from sim_anneal import *
+from orr_optimizer.orr_cat import orr_cat
+from orr_optimizer.sim_anneal import *
 
 
 fldr = '.'
@@ -19,7 +19,7 @@ subfldr_list = []
 for fldr_or_file in os.listdir(fldr):
     if os.path.isdir(os.path.join(fldr,fldr_or_file)):
         subfldr_list.append(fldr_or_file)
-        
+
 
 '''
 Build catalyst structure
@@ -31,9 +31,9 @@ for subfldr in subfldr_list:
     traj_b = np.load(os.path.join(subfldr, 'trajectory_b.npy'))
     unquenched_data.append(traj_a[-1,1:3:])
     quenched_data.append(traj_b[-1,1:3:])
- 
+
 unquenched_data = np.array(unquenched_data)
-quenched_data = np.array(quenched_data) 
+quenched_data = np.array(quenched_data)
 
 max_ind = np.argmax(quenched_data[:,1])
 

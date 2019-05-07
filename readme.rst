@@ -5,7 +5,8 @@ Catalyst structure optimization for the oxygen reduction reaction on Pt and Au.
 
 Dependencies
 -------------
-* `Atomic simualtion environment <https://wiki.fysik.dtu.dk/ase/>`_ : Data structures for molecular structures and file IO.
+* `Atomic simualtion environment (3.17.0) <https://wiki.fysik.dtu.dk/ase/>`_ : Data structures for molecular structures and file IO.
+* See requirements.txt for suitable virtual environment dependencies
 
 Publications
 -------------
@@ -18,10 +19,10 @@ Developers
 
 Directory Structure
 --------------------
-* volcano: produces all_volcanos.npy, which is read by the files in the structures folder.
-* orr_: Provides classes for simulating the ORR chemistry and catalyst structure
-* optimization_scripts: folders run the optimizations and do the analysis by importing classes from the structures folder
-* figures: produces figures for publication
+* orr_optimizer: Core classes for simulating the ORR chemistry and catalyst structure
+* volcano: generate_volcanoes.py produces all_volcanos.npy, which is read by the files in the structures folder.
+* optimization_scripts: Optimize_main.py performs a sample optimization. Extract_data.py shows data from the publication.
+* figures: produces some figures from publication
 
 Usage
 -------

@@ -6,11 +6,11 @@ Stage 2: Minimize surface energy by moving atoms to adjacent locations at consta
 '''
 
 import os
-import sys 
+import sys
 import numpy as np
 import random
-from orr_cat import orr_cat
-from sim_anneal import *
+from orr_optimizer.orr_cat import orr_cat
+from orr_optimizer.sim_anneal import *
 
 import matplotlib.pyplot as plt
 import matplotlib as mat
@@ -62,7 +62,7 @@ Multiobjective optimization (stage 1)
 '''
 
 # Optimize
-traj_hist_a = optimize(cat, weight = MOO_weight, ensemble = 'GCE', n_cycles = 500, T_0 = 1.2, 
+traj_hist_a = optimize(cat, weight = MOO_weight, ensemble = 'GCE', n_cycles = 500, T_0 = 1.2,
     j_norm = I_norm, se_norm = E_form_norm, n_record = 100, verbose = True)
 np.save(os.path.join(data_fldr, 'trajectory_a.npy'), traj_hist_a)
 

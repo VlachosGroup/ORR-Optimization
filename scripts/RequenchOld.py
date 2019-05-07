@@ -4,16 +4,10 @@ Reads Pareto optimizations produced by the old Matlab code
 
 import os
 import sys
-sys.path.append('/home/vlachos/mpnunez/Github/Zacros-Wrapper')
-sys.path.append('/home/vlachos/mpnunez/Github/Structure-Optimization')
-sys.path.append('/home/vlachos/mpnunez/python_packages/ase')
-sys.path.append('/home/vlachos/mpnunez/python_packages/sklearn/lib/python2.7/site-packages')
-this_folder = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(this_folder,'..','structure')) 
 import numpy as np
 import random
-from orr_cat import orr_cat
-from sim_anneal import *
+from orr_optimizer.orr_cat import orr_cat
+from orr_optimizer.sim_anneal import *
 
 import matplotlib.pyplot as plt
 import matplotlib as mat
@@ -32,12 +26,12 @@ def is_pareto_efficient(costs):
 
 fldr = '.'
 
-# List all folders  
+# List all folders
 subfldr_list = []
 for fldr_or_file in os.listdir(fldr):
     if os.path.isdir(os.path.join(fldr,fldr_or_file)):
         subfldr_list.append(fldr_or_file)
-        
+
 
 '''
 Build catalyst structure
@@ -49,18 +43,18 @@ unquenched_data = []
 quenched_data = []
 re_quenched_data = []
 for subfldr in subfldr_list:
-    
+
     # Unquenched structure
     f = open(os.path.join(subfldr, "optimum.bin"), "r")
     a = np.fromfile(f, dtype=np.uint32)
     a = a[2700::]       # ignore occupancies of first 3 layers of 900 atoms each
     cat.assign_occs(a)
-    
+
     j = cat.eval_current_density(normalize = True)
     seng = cat.eval_surface_energy(normalize = True)
     unquenched_data.append([j, seng])
     print [j, seng]
-    
+
     # Structure quenched with Matlab
     f = open(os.path.join(subfldr, 'quench', "optimum.bin"), "r")
     a = np.fromfile(f, dtype=np.uint32)
@@ -71,19 +65,19 @@ for subfldr in subfldr_list:
     seng = cat.eval_surface_energy(normalize = True)
     quenched_data.append([j, seng])
     print [j, seng]
-    
+
     # Structure requenched with Python
-    
-    
+
+
     if j > 40.0:
         traj_hist_b = optimize(cat, weight = 0., ensemble = 'CE', n_cycles = 25,
             T_0 = 0, n_record = 100, verbose = True)
-            
+
     j = cat.eval_current_density(normalize = True)
     seng = cat.eval_surface_energy(normalize = True)
     re_quenched_data.append([j, seng])
     print [j, seng]
- 
+
 unquenched_data = np.array(unquenched_data)
 quenched_data = np.array(quenched_data)
 re_quenched_data = np.array(re_quenched_data)

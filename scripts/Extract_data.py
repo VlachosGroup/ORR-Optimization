@@ -16,12 +16,13 @@ from orr_optimizer.orr_cat import *
 metal_list = ['Pt', 'Au']
 facet_list = ['111', '100']
 
+# Point this to where you have the data (from Josh's email)
+script_fldr = os.path.dirname(os.path.realpath(__file__))
+data_fldr = os.path.join(script_fldr, 'optimization_raw_data')
+
 '''
 User section
 '''
-
-# Point this to where you have the data (from Josh's email)
-data_fldr = 'C:\\Users\\mpnun\\Desktop\\FromRepository\\7_6_2016'
 
 # Use any of the 4 combinations of metal and facet
 met = metal_list[0]
@@ -41,10 +42,9 @@ data_fldr2 = os.path.join(data_fldr, met, fac)
 for i in range(250):
     fldr3 = os.path.join(data_fldr2,str(i+1),'quench','optimum.bin')
     a = np.fromfile(fldr3, dtype=np.uint32)
-    
+
     variable_occs = a[-900::]                                   # This is 'x'
     cat.assign_occs(variable_occs)
     current = cat.eval_current_density(normalize = True)        # current density in mA/cm^2
     surf_eng = cat.eval_surface_energy(normalize = True)        # surface energy in J/m^2
     print([current, surf_eng])
-    
