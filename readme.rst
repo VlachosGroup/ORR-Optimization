@@ -7,6 +7,7 @@ Dependencies
 -------------
 * `Atomic simualtion environment (3.17.0) <https://wiki.fysik.dtu.dk/ase/>`_ : Data structures for molecular structures and file IO.
 * See requirements.txt for suitable virtual environment dependencies
+* Minimum of 8GB of memory recommended
 
 Publications
 -------------
