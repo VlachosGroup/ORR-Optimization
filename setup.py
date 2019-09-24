@@ -3,7 +3,7 @@ with open("readme.rst", "r") as fh:
     long_description = fh.read()
 setuptools.setup(
      name='ORR-Optimization',
-     version='0.1',
+     version='0.2',
      scripts=[] ,
      author="Marcel Nunez",
      author_email="mpnunez28@gmail.com",
@@ -11,6 +11,7 @@ setuptools.setup(
      long_description=long_description,
    long_description_content_type="text/markdown",
      url="https://github.com/VlachosGroup/ORR-Optimization",
+     install_requires=['ase', 'numpy', 'scipy', 'matplotlib', 'pandas'],
      packages=setuptools.find_packages(),
      classifiers=[
          "Programming Language :: Python :: 3",

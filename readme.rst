@@ -27,5 +27,5 @@ Directory Structure
 
 Usage
 -------
-* Add repository to PYTHONPATH environment variable
+* ```pip install ORR-Optimization==0.2```
 * ```import orr_optimizer``` or run scripts in the scripts folder
